@@ -1,0 +1,33 @@
+; h5 file containing the initial particle distribution
+initFile ../testcases/kelvin-helmholtz/khN16384.h5
+
+; output directory for particle distribution h5 files
+outDir output
+
+; fixed time step
+; when ADAPTIVE_TIMESTEP is set in parameter.h,
+; this gives the output timesteps combined with h5DumpInterval
+timeStep .005
+
+; end of the simulation
+timeEnd 4.
+
+; output particle distribution each h5DumpInterval steps
+h5DumpInterval 10
+
+; periodic boundaries of box
+; ignored when PERIODIC_BOUNDARIES is not set in parameter.h
+periodicBoxLimits {
+    lowerX 0.
+    lowerY 0.
+    lowerZ 0.
+    upperX 1.
+    upperY 1.
+    upperZ 0.
+}
+
+; kernel size for meshless scheme/SPH
+kernelSize .025
+
+; adiabatic index
+gamma 1.6666666666666667
