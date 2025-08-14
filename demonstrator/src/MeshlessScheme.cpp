@@ -89,15 +89,30 @@ void MeshlessScheme::run(){
 #endif
 
 #if ADAPTIVE_TIMESTEP
+
         Logger(INFO) << "    > Selecting global timestep ... ";
         timeStep = particles->compGlobalTimestep(config.gamma, config.kernelSize);
-        //Logger(INFO) << "Time  > dt = " << timeStep << " selected.";
-        if(dumpStep >= numDumpTimes){
+        Logger(INFO) << "Time  > dt = " << timeStep << " selected.";
+        Logger(INFO) << "Next dump time: " << dumpTimes[dumpStep + 1];
+        Logger(INFO) << "Dump: " << dump << " dumpstep " << dumpStep << " next dumptime " << dumpTimes[dumpStep+1];
+	if(dumpStep >= numDumpTimes){
             Logger(ERROR) << "Simulation did not abort after reaching timeEnd. Exiting.";
             exit(9);
-        } else if(t+timeStep>=dumpTimes[dumpStep+1]){
+        // } else if(t+timeStep>=dumpTimes[dumpStep+1]){
+        //     // if (step % config.h5DumpInterval != 0) {
+        //     dumpNext = true;
+        //     timeStep = dumpTimes[dumpStep+1]-t;
+        //     Logger(INFO) << "Shorter timestep for punctual dumping";
+	    //     // }
+        // }
+        // } else if(t+timeStep>=dumpTimes[dumpStep+1])        
+        } else if((t+timeStep>=dumpTimes[dumpStep+1])&(t<dumpTimes[dumpStep+1]))
+        {
+            // if (step % config.h5DumpInterval != 0) {
             dumpNext = true;
             timeStep = dumpTimes[dumpStep+1]-t;
+            Logger(INFO) << "Shorter timestep for punctual dumping";
+	        // }
         }
         Logger(INFO) << "Time  > dt = " << timeStep << " selected.";
 #else // ADAPTIVE_TIMESTEP
@@ -181,8 +196,7 @@ void MeshlessScheme::run(){
 
             Logger(INFO) << "      > Dump particles to file";
             particles->dump2file(config.outDir + "/" + stepss.str() + std::string(".h5"), t);
-
-            ++dumpStep;
+	    ++dumpStep;
 
 #if DEBUG_LVL > 1
 #if PERIODIC_BOUNDARIES
