@@ -49,13 +49,13 @@
  * 1: additional checks
  * 2: dump NNL and ghosts to files (this should not be used for large amounts of particles)
 **/
-#define DEBUG_LVL 1
+#define DEBUG_LVL 0
 
 /// use first order quadrature point for Riemann problems
 #define FIRST_ORDER_QUAD_POINT 1
 
 /// define if code should run as SPH, which ignores most of the directives above
-#define RUNSPH 1
+#define RUNSPH 0
 
 /// define if arificial viscosity should be employed
 #define ARTVISC 1

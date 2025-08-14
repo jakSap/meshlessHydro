@@ -1,5 +1,6 @@
 ; h5 file containing the initial particle distribution
-initFile ../testcases/kelvin-helmholtz/khN16384.h5
+;initFile ../testcases/kelvin-helmholtz/khN16384.h5
+initFile ../testcases/kelvin-helmholtz/khN10000.h5
 
 ; output directory for particle distribution h5 files
 outDir output
@@ -10,10 +11,10 @@ outDir output
 timeStep .005
 
 ; end of the simulation
-timeEnd 4.
+timeEnd .02
 
 ; output particle distribution each h5DumpInterval steps
-h5DumpInterval 10
+h5DumpInterval 1
 
 ; periodic boundaries of box
 ; ignored when PERIODIC_BOUNDARIES is not set in parameter.h

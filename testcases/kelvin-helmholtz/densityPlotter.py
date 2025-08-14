@@ -20,9 +20,9 @@ def createPlot(h5File, outDir, plotGrad, plotVel, iNNL):
     plt.rcParams.update({'font.size': 18})
     fig, ax = plt.subplots(figsize=(7,6), dpi=200)
     #rhoPlt = ax.scatter(pos[:,0], pos[:,1], c=rho, s=500.) # good for ~100 particles
-    rhoPlt = ax.scatter(pos[:,0], pos[:,1], c=rho, s=150.) # good for ~400 particles
+    #rhoPlt = ax.scatter(pos[:,0], pos[:,1], c=rho, s=150.) # good for ~400 particles
     #rhoPlt = ax.scatter(pos[:,0], pos[:,1], c=rho, s=100.) # good for ~900 particles
-    #rhoPlt = ax.scatter(pos[:,0], pos[:,1], c=rho, s=20.) # good for 10**4 particles
+    rhoPlt = ax.scatter(pos[:,0], pos[:,1], c=rho, s=12.) # good for 10**4 particles
     #rhoPlt = ax.scatter(pos[:,0], pos[:,1], c=rho, s=5.) # good for 128**2 particles
     
     if "Ghosts" not in str(h5File):
