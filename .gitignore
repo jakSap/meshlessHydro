@@ -1,0 +1,54 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Executable folder
+bin/
+
+# Header only libraries
+holib/
+
+# Output files
+output/
+
+# JetBrains projject files
+.idea
+# emacs autosave files
+*~
+
+# Generated output files
+*.h5
+*.png
+*.mp4
+
+# Python cache files
+__pycache__/
