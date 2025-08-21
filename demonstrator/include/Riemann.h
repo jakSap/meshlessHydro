@@ -11,6 +11,7 @@
 #include "Helper.h"
 #include "parameter.h"
 #include "Logger.h"
+
 #include "HLLC.h"
 
 class Riemann {
@@ -25,6 +26,7 @@ public:
      * @param[out] Fij flux to be computed
      */
     void exact(double *Fij, const double &gamma);
+
 
     // HLL approximate Riemann solver, as in Toro, chapter 10.3
     // For != ideal gas
@@ -55,6 +57,7 @@ private:
     int i;
     double *WR, *WL, *vFrame, *Aij;
     double rhoSol, vSol[DIM], PSol, AijNorm;
+
     double hatAij[DIM];
     double unitX[DIM] = { 1, 0
 #if DIM==3

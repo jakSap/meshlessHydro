@@ -1,3 +1,4 @@
+
 This is a fork of the [MeshlessHydro](https://github.com/jammartin/meshlessHydro) project by [jammartin](https://github.com/jammartin). It uses the HLLC approximate Riemann solver from [Swift](https://gitlab.cosma.dur.ac.uk/swift/swiftsim) to implement the Meshless Finite Volume Method by Hopkins et al implemented in [GIZMO](http://www.tapir.caltech.edu/~phopkins/Site/GIZMO.html) and described in "[Accurate, Meshless Methods for Magneto-Hydrodynamics](https://arxiv.org/abs/1505.02783)". For more info on the code setup and structure, check out [MeshlessHydro](https://github.com/jammartin/meshlessHydro).
 Also available is a simple SPH method with artificial viscosity. The SPH method can not yet run with adaptive timesteps.
 
@@ -53,3 +54,4 @@ Also available is a simple SPH method with artificial viscosity. The SPH method 
 ```
 ## Roadmap
 This project aims to implement the Meshless Finite Mass method in the above paper, and to develop it to simulate granular media using elastic and solid dynamics as well as a Von Mieses strength model.
+

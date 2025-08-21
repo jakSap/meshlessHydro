@@ -19,6 +19,7 @@
 
 /// maximum number of interactions for each particle
 #define MAX_NUM_INTERACTIONS 120
+
 /** maximum interactions with ghost particles
  *  ignored when `PERIODIC_BOUNDARIES` is not set
 **/
@@ -37,7 +38,6 @@
 
 /// meshless finite mass method instead of meshless finite volume
 #define MESHLESS_FINITE_MASS 0
-
 
 // Use HLLC or HLL solver for EOS != ideal gas
 #define USE_HLLC 1
@@ -68,6 +68,7 @@
 #define FIRST_ORDER_QUAD_POINT 1
 
 /// define if code should run as SPH, which ignores most of the directives above
+
 #define RUNSPH 0
 
 /// define if arificial viscosity should be employed

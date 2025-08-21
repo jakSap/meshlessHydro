@@ -119,6 +119,7 @@ void SPH::run(){
 #else
         Logger(DEBUG) << "	> Computing acceleration";
         particles->compAccSPH(config.kernelSize);
+
 #endif
 
 #if PERIODIC_BOUNDARIES

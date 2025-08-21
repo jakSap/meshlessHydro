@@ -153,6 +153,10 @@ void Riemann::HLLCFlux(double *Fij, const double &gamma){
 }
 #endif
 // Exact Riemann solver
+=======
+}
+
+>>>>>>> upstream/main
 void Riemann::exact(double *Fij, const double &gamma){
     RiemannSolver solver { gamma };
 
