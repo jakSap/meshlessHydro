@@ -8,10 +8,11 @@ outDir output
 ; fixed time step
 ; when ADAPTIVE_TIMESTEP is set in parameter.h,
 ; this gives the output timesteps combined with h5DumpInterval
-timeStep .005
+;timeStep .005
+timeStep .0001
 
 ; end of the simulation
-timeEnd 1.
+timeEnd 4.
 
 ; output particle distribution each h5DumpInterval steps
 h5DumpInterval 5

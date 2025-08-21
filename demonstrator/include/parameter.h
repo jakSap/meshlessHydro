@@ -40,7 +40,7 @@
 
 
 // Use HLLC or HLL solver for EOS != ideal gas
-#define USE_HLLC 0
+#define USE_HLLC 1
 
 // Use HLL solver
 #define USE_HLL 0
