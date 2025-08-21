@@ -2,12 +2,8 @@
 SHELL := /bin/bash
 
 # Set compiler
-<<<<<<< HEAD
-CXX := mpic++
-=======
-#CXX := mpic++
 CXX := g++
->>>>>>> upstream/main
+#CXX := mpic++
 
 TRGTDIR := bin
 TARGET := mlh
@@ -35,15 +31,12 @@ OBJECTS := $(SOURCES:$(SRCDIR)/%.$(SRCEXT)=$(OBJDIR)/%.$(OBJEXT))
 MAIN := main
 
 # setting general flags
-<<<<<<< HEAD
 CXXFLAGS := -std=c++11 -O3 -I../../boost_installation/include -I$(INCLDIR) -I$(HOLIB) -I/usr/include/hdf5/serial  #-Xpreprocessor -fopenmp
 # setting linker flags
 LDFLAGS := -std=c++11 -L../../boost_installation/lib -L/usr/lib/x86_64-linux-gnu/hdf5/serial -lhdf5 -lboost_filesystem -llapack -lblas #-lboost_mpi -lboost_serialization -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-=======
-CXXFLAGS := -std=c++11 -O3 -I$(INCLDIR) -I$(HOLIB) #-I/usr/include/hdf5/openmpi -Xpreprocessor -fopenmp
+#CXXFLAGS := -std=c++11 -O3 -I$(INCLDIR) -I$(HOLIB) #-I/usr/include/hdf5/openmpi -Xpreprocessor -fopenmp
 # setting linker flags
-LDFLAGS := -std=c++11 -lhdf5 -lboost_filesystem -llapack -lblas #-lboost_mpi -lboost_serialization -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
->>>>>>> upstream/main
+#LDFLAGS := -std=c++11 -lhdf5 -lboost_filesystem -llapack -lblas #-lboost_mpi -lboost_serialization -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 
 # get kernel name to be able to run sed correctly on Darwin (MacOS) or Linux kernels
 KERNEL := $(shell uname -s)
@@ -95,10 +88,7 @@ include $(DEPENDS)
 
 prepare-run:
 	@mkdir -p output
-<<<<<<< HEAD
 	@mkdir -p log
-=======
->>>>>>> upstream/main
 
 # build module as shared library and install it on your system
 install: prepare-run | $(HOLIB)
