@@ -118,7 +118,7 @@ void SPH::run(){
         particles->compAccSPH(ghostParticles, config.kernelSize);
 #else
         Logger(DEBUG) << "	> Computing acceleration";
-    particles->compAccSPH(config.kernelSize);
+        particles->compAccSPH(config.kernelSize);
 #endif
 
 #if PERIODIC_BOUNDARIES

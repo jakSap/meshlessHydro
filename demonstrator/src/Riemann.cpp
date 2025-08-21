@@ -20,6 +20,7 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
     //    Logger(DEBUG) << "Aij = [" << Aij[0] << ", " << Aij[1] << "], AijNorm = " << AijNorm;
     //}
 
+#if !USE_HLLC
 //#if DIM == 3
 //    Logger(ERROR) << "Rotation of states is not yet implemented in 3D. - Aborting.";
 //    exit(4);
@@ -34,6 +35,7 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
     double vBufR[DIM] = { WR[2], WR[3] };
     double vBufL[DIM] = { WL[2], WL[3] };
 
+    // Implementing eq. A5 in GIZMO
     WR[2] = Lambda[0]*vBufR[0]+Lambda[1]*vBufR[1];
     WR[3] = Lambda[2]*vBufR[0]+Lambda[3]*vBufR[1];
     WL[2] = Lambda[0]*vBufL[0]+Lambda[1]*vBufL[1];
@@ -78,8 +80,79 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
     WL[3] = Lambda[3]*vBufL[0]+Lambda[4]*vBufL[1]+Lambda[5]*vBufL[2];
     WL[4] = Lambda[6]*vBufL[0]+Lambda[7]*vBufL[1]+Lambda[8]*vBufL[2];
 #endif
+#endif // !USE_HLLC
 }
 
+#if USE_HLLC
+// Add HLLC function for approximate Riemann Solver
+void Riemann::HLLCFlux(double *Fij, const double &gamma){
+
+#if DIM==3
+        HLLC::solveHLLC(WL, WR, hatAij, Fij, vFrame, gamma);
+
+        // Rotate and project fluxes onto Aij
+#else
+        // Logger(DEBUG) << " WL: " << WL[0] << " " << WL[1] << " " << WL[2] << " " << WL[3];
+
+#if USE_HLL
+        HLLC::HLL(WL, WR, Fij, gamma);
+#else
+        HLLC::solveHLLC1(WL, WR, hatAij, Fij, vFrame, gamma);
+#endif  // USE_HLL
+
+        // Logger(DEBUG) << "i = " << i << " mF = " << Fij[0];
+        // Rotate fluxes back into the Aij-direction:
+        // double LambdaInv[DIM*DIM];
+
+        // // Build rotation matrix to rotate from unitX to hatAij
+        // Helper::rotationMatrix2D(unitX, hatAij, LambdaInv);
+        // // Helper::rotationMatrix2D(unitX, hatAij, LambdaInv);
+
+        // // Buffer velocity fluxes
+        // double FijBuf[DIM] = { Fij[2], Fij[3] };
+
+        // // Rotate fluxes: Eq A7
+        // Fij[2] = LambdaInv[0]*FijBuf[0]+LambdaInv[1]*FijBuf[1];
+        // Fij[3] = LambdaInv[2]*FijBuf[0]+LambdaInv[3]*FijBuf[1];
+
+        double vFrame2 = pow(vFrame[0], 2) + pow(vFrame[1], 2);
+
+
+        /// Compute fluxes projected onto Aij
+        // Fij[0] *= (Aij[0] + Aij[1]); // mass flux
+
+
+        // Project onto effective faces:
+        Fij[0] *= AijNorm;
+        Fij[1] *= AijNorm;
+        //
+        // Option 1: Hadamarf product
+        // double v = sqrtf(pow(Fij[2], 2) + pow(Fij[3], 2));
+        Fij[2] = Fij[2] * AijNorm;
+        Fij[3] = Fij[3] * AijNorm;
+
+        // Fij[2] *= Aij[0];
+        // Fij[3] *= Aij[1];
+
+        // Option 2: multiply with norm
+        // Fij[2] *= AijNorm;
+        // Fij[3] *= AijNorm;
+
+        // De-boost into lab frame. Eq. A8:
+
+        // Fij[1] += 0.5 * vFrame2 * Fij[0] +
+        //     vFrame[0] * Fij[1] + vFrame[1] * Fij[2];
+        //
+        // Fij[2] += vFrame[0] * Fij[0];
+        // Fij[3] += vFrame[1] * Fij[0];
+// #if DIM == 3
+//         Fij[4] += vFrame[3] * Fij[0];
+// #endif
+
+#endif
+}
+#endif
+// Exact Riemann solver
 void Riemann::exact(double *Fij, const double &gamma){
     RiemannSolver solver { gamma };
 
