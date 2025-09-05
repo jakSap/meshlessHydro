@@ -8,7 +8,8 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
                     WR { WR }, WL { WL }, vFrame { vFrame },  Aij { Aij }, i { i }{
 
     // compute norm of effective face
-    double AijNorm = sqrt(Helper::dotProduct(Aij, Aij));
+    // double AijNorm = sqrt(Helper::dotProduct(Aij, Aij));
+    AijNorm = sqrt(Helper::dotProduct(Aij, Aij));
 
     hatAij[0] = 1./AijNorm*Aij[0];
     hatAij[1] = 1./AijNorm*Aij[1];
@@ -88,16 +89,16 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
 void Riemann::HLLCFlux(double *Fij, const double &gamma){
 
 #if DIM==3
-        HLLC::solveHLLC(WL, WR, hatAij, Fij, vFrame, gamma);
+        HLLC::solveHLLC(WR, WL, hatAij, Fij, vFrame, gamma); // ToDo: 3d is not implemented
 
         // Rotate and project fluxes onto Aij
 #else
         // Logger(DEBUG) << " WL: " << WL[0] << " " << WL[1] << " " << WL[2] << " " << WL[3];
 
 #if USE_HLL
-        HLLC::HLL(WL, WR, Fij, gamma);
+        HLLC::HLL(WR, WL, Fij, gamma);
 #else
-        HLLC::solveHLLC1(WL, WR, hatAij, Fij, vFrame, gamma);
+        HLLC::solveHLLC1(WR, WL, hatAij, Fij, vFrame, gamma);
 #endif  // USE_HLL
 
         // Logger(DEBUG) << "i = " << i << " mF = " << Fij[0];
@@ -115,7 +116,7 @@ void Riemann::HLLCFlux(double *Fij, const double &gamma){
         // Fij[2] = LambdaInv[0]*FijBuf[0]+LambdaInv[1]*FijBuf[1];
         // Fij[3] = LambdaInv[2]*FijBuf[0]+LambdaInv[3]*FijBuf[1];
 
-        double vFrame2 = pow(vFrame[0], 2) + pow(vFrame[1], 2);
+        // double vFrame2 = pow(vFrame[0], 2) + pow(vFrame[1], 2);
 
 
         /// Compute fluxes projected onto Aij
