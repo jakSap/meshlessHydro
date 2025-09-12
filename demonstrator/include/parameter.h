@@ -18,7 +18,7 @@
 #define CFL .2              // TODO: move to config
 
 /// maximum number of interactions for each particle
-#define MAX_NUM_INTERACTIONS 120
+#define MAX_NUM_INTERACTIONS 200
 
 /** maximum interactions with ghost particles
  *  ignored when `PERIODIC_BOUNDARIES` is not set
@@ -39,8 +39,11 @@
 /// meshless finite mass method instead of meshless finite volume
 #define MESHLESS_FINITE_MASS 0
 
+// Until MatID is implemented, to simplify debugging:
+#define USE_MATID 0
+
 // Use HLLC or HLL solver for EOS != ideal gas
-#define USE_HLLC 1
+#define USE_HLLC 0
 
 // Use HLL solver
 #define USE_HLL 0
@@ -62,7 +65,7 @@
  * 1: additional checks
  * 2: dump NNL and ghosts to files (this should not be used for large amounts of particles)
 **/
-#define DEBUG_LVL 1
+#define DEBUG_LVL 0
 
 /// use first order quadrature point for Riemann problems
 #define FIRST_ORDER_QUAD_POINT 1

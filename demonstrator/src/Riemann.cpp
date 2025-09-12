@@ -11,15 +11,24 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
     // double AijNorm = sqrt(Helper::dotProduct(Aij, Aij));
     AijNorm = sqrt(Helper::dotProduct(Aij, Aij));
 
-    hatAij[0] = 1./AijNorm*Aij[0];
-    hatAij[1] = 1./AijNorm*Aij[1];
+    if(AijNorm > 0){
+        hatAij[0] = 1./AijNorm*Aij[0];
+        hatAij[1] = 1./AijNorm*Aij[1];
 #if DIM == 3
-    hatAij[2] = 1./AijNorm*Aij[2];
+        hatAij[2] = 1./AijNorm*Aij[2];
 #endif
-
-    //if (i == 6){
-    //    Logger(DEBUG) << "Aij = [" << Aij[0] << ", " << Aij[1] << "], AijNorm = " << AijNorm;
-    //}
+    }
+    else{
+        hatAij[0] = 0;
+        hatAij[1] = 0;
+#if DIM == 3
+        hatAij[2] = 0;
+#endif
+    }
+    
+    if (i == 12157){
+       Logger(DEBUG) << "Aij = [" << Aij[0] << ", " << Aij[1] << "], AijNorm = " << AijNorm;
+    }
 
 #if !USE_HLLC
 //#if DIM == 3

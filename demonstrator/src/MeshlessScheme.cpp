@@ -28,7 +28,7 @@ void MeshlessScheme::run(){
     double dumpTimes[numDumpTimes];
     for(int iDump=0; iDump<numDumpTimes; ++iDump){
         dumpTimes[iDump] = iDump*config.timeStep*config.h5DumpInterval;
-        Logger(DEBUG) << "        dumpTimes[" << iDump << "] = " << dumpTimes[iDump];
+        // Logger(DEBUG) << "        dumpTimes[" << iDump << "] = " << dumpTimes[iDump];
     }
     int dumpStep = 0;
     bool dump = true;
@@ -184,7 +184,12 @@ void MeshlessScheme::run(){
 
             Logger(INFO) << "      > Dump particles to file";
             particles->dump2file(config.outDir + "/" + stepss.str() + std::string(".h5"), t);
-	    ++dumpStep;
+// ???
+#if ADAPTIVE_TIMESTEP
+            ++dumpStep;
+#else
+            ++ step;
+#endif // ADAPTIVE_TIMESTEP
 
 #if DEBUG_LVL > 1
 #if PERIODIC_BOUNDARIES
