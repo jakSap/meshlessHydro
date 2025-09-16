@@ -46,7 +46,11 @@ public:
     // void HLLC(const double *WL, const double *WR, const double *nUnit,
     //                                    const double *vij, const double &gamma, double *Fij);
 #if USE_HLLC
+#if MURNAGHAN_EOS
+    void HLLCFluxMurn(double *Fij, const double &MURN_K0, const double &MURN_n, const double &MURN_rho0);
+#else
     void HLLCFlux(double *Fij, const double &gamma);
+#endif //MURNAGHAN_EOS
 #endif
 
 private:

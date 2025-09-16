@@ -98,7 +98,80 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
 }
 
 #if USE_HLLC
-// Add HLLC function for approximate Riemann Solver
+#if MURNAGHAN_EOS
+// HLLC solver for a Murnaghan EOS
+void Riemann::HLLCFluxMurn(double *Fij, const double &MURN_K0, const double &MURN_n, const double &MURN_rho0){
+
+#if DIM==3
+    Logger(WARN) << "HLLC solver not implemented in 3d for Murnaghan EOS, aborting...";
+    error(6);
+
+    // HLLC::solveHLLC(WR, WL, hatAij, Fij, vFrame, gamma); // ToDo: 3d is not implemented
+
+    // Rotate and project fluxes onto Aij
+#else
+    // Logger(DEBUG) << " WL: " << WL[0] << " " << WL[1] << " " << WL[2] << " " << WL[3];
+
+#if USE_HLL
+    Logger(WARN) << "HLL solver not implemented for Murnaghan EOS, aborting...";
+    error(6);
+#else
+    HLLC::solveHLLC(WR, WL, hatAij, Fij, vFrame, K0, murn_n, rho0);
+#endif  // USE_HLL
+
+    // Logger(DEBUG) << "i = " << i << " mF = " << Fij[0];
+    // Rotate fluxes back into the Aij-direction:
+    // double LambdaInv[DIM*DIM];
+
+    // // Build rotation matrix to rotate from unitX to hatAij
+    // Helper::rotationMatrix2D(unitX, hatAij, LambdaInv);
+    // // Helper::rotationMatrix2D(unitX, hatAij, LambdaInv);
+
+    // // Buffer velocity fluxes
+    // double FijBuf[DIM] = { Fij[2], Fij[3] };
+
+    // // Rotate fluxes: Eq A7
+    // Fij[2] = LambdaInv[0]*FijBuf[0]+LambdaInv[1]*FijBuf[1];
+    // Fij[3] = LambdaInv[2]*FijBuf[0]+LambdaInv[3]*FijBuf[1];
+
+    // double vFrame2 = pow(vFrame[0], 2) + pow(vFrame[1], 2);
+
+
+    /// Compute fluxes projected onto Aij
+    // Fij[0] *= (Aij[0] + Aij[1]); // mass flux
+
+
+    // Project onto effective faces:
+    Fij[0] *= AijNorm;
+    Fij[1] *= AijNorm;
+    //
+    // Option 1: Hadamarf product
+    // double v = sqrtf(pow(Fij[2], 2) + pow(Fij[3], 2));
+    Fij[2] = Fij[2] * AijNorm;
+    Fij[3] = Fij[3] * AijNorm;
+
+    // Fij[2] *= Aij[0];
+    // Fij[3] *= Aij[1];
+
+    // Option 2: multiply with norm
+    // Fij[2] *= AijNorm;
+    // Fij[3] *= AijNorm;
+
+    // De-boost into lab frame. Eq. A8:
+
+    // Fij[1] += 0.5 * vFrame2 * Fij[0] +
+    //     vFrame[0] * Fij[1] + vFrame[1] * Fij[2];
+    //
+    // Fij[2] += vFrame[0] * Fij[0];
+    // Fij[3] += vFrame[1] * Fij[0];
+// #if DIM == 3
+//         Fij[4] += vFrame[3] * Fij[0];
+// #endif
+
+#endif
+}
+#else
+// Add HLLC function for approximate Riemann Solver, here for a liquid EOS
 void Riemann::HLLCFlux(double *Fij, const double &gamma){
 
 #if DIM==3
@@ -165,7 +238,8 @@ void Riemann::HLLCFlux(double *Fij, const double &gamma){
 
 #endif
 }
-#endif
+#endif //MURNAGHAN_EOS
+#endif //USE_HLLC
 // Exact Riemann solver
 void Riemann::exact(double *Fij, const double &gamma){
     RiemannSolver solver { gamma };

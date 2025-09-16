@@ -32,14 +32,20 @@ public:
     // Method solve: eqivalent to riemann_solve_for_flux in SWIFT, BUT:
     // static void solveHLLC0(double *WL, double *WR, double *n, double *totflux,
     //         const double *vij, const double &hydro_gamma);
-
+#if USE_HLL
+static void HLL(double *WL, double *WR, double *totflux, const double &hydro_gamma);
+#else
+#if MURNAGHAN_EOS
+    static void solveHLLC1(double *WL, double *WR, double *n, double *totflux,
+            const double *vij, const double &MURN_K0, const double &MURN_n, const double &MURN_rho0);
+#else
     static void solveHLLC1(double *WL, double *WR, double *n, double *totflux,
             const double *vij, const double &hydro_gamma);
-
+#endif // MURNAGHAN_EOS
+#endif // USE_HLL
     // HLL Solver
-    static void HLL(double *WL, double *WR, double *totflux, const double &hydro_gamma);
     
 // private:
 //     int j;
 };
-#endif
+#endif //MESHLESS_HYDRO_HLLC

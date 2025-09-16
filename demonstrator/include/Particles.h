@@ -139,8 +139,15 @@ public:
     void compPsijTilde(Helper &helper, const double &kernelSize);
     void gradient(double *f, double (*grad)[DIM]);
     void slopeLimiter(const double &kernelSize,
-                      Particles *ghostParticles=nullptr);
+                    Particles *ghostParticles=nullptr);
+
+#if MURNAGHAN_EOS
+    void compPressure(const double &MURN_K0, const double &MURN_n,
+                    const double &MURN_rho0);
+#else
     void compPressure(const double &gamma);
+#endif
+
     void compEffectiveFace();
 
     double compGlobalTimestep(const double &gamma, const double &kernelSize);

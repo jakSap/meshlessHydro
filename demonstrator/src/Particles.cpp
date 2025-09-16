@@ -1313,6 +1313,14 @@ void Particles::gradient(double *f, double (*grad)[DIM]){
     }
 }
 
+#if MURNAGHAN_EOS
+void Particles::compPressure(const double &MURN_K0,
+    const double &MURN_n, const double &MURN_rho0){
+    for(int i = 0; i < N; ++i){
+        P[i] = MURN_K0 / MURN_n * (pow((rho[i] / MURN_rho0), MURN_n) - 1);
+    }
+}
+#else
 void Particles::compPressure(const double &gamma){
     for (int i=0; i<N; ++i){
         // if (i % 1 == 0){
@@ -1331,6 +1339,7 @@ void Particles::compPressure(const double &gamma){
         }
     }
 }
+#endif //MURNAGHAN_EOS
 
 void Particles::compEffectiveFace(){
     for (int i=0; i<N; ++i){
@@ -1910,7 +1919,11 @@ void Particles::solveRiemannProblems(const double &gamma, const Particles &ghost
             //    calcNunit(i, ii, n_unit);
                 // Logger(DEBUG) << "Ok " << j << " "<< i;
                 Riemann solver { WijL[ii], WijR[ii], vFrame[ii], Aij[ii], i};
+#if MURNAGHAN_EOS
+                solver.HLLCFluxMurn(Fij);
+#else
                 solver.HLLCFlux(Fij[ii], gamma);
+#endif //MURNAGHAN_EOS
 #else
                 Riemann solver { WijL[ii], WijR[ii], vFrame[ii], Aij[ii] , i };
                 solver.exact(Fij[ii], gamma);
