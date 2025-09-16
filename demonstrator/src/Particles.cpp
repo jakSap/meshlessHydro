@@ -1334,6 +1334,9 @@ void Particles::compPressure(const double &gamma){
 
 void Particles::compEffectiveFace(){
     for (int i=0; i<N; ++i){
+        if(i < 10){
+            Logger(DEBUG) << "Particle i = " << i << ", noi[i] = " << noi[i];
+        }
         for (int j=0; j<noi[i]; ++j){
             int ji = nnl[i*MAX_NUM_INTERACTIONS+j]; // index i of particle j
             // search neighbor i in nnl[] of j
@@ -1346,11 +1349,11 @@ void Particles::compEffectiveFace(){
                         - 1./omega[ji]*psijTilde_xi[ij+ji*MAX_NUM_INTERACTIONS][alpha];
             }
 
-            //if(i < 10){
-            //    Logger(DEBUG) << "A[" << i << " -> " << ji << "] = [" << Aij[i*MAX_NUM_INTERACTIONS+j][0] << ", "
-            //                  << Aij[i*MAX_NUM_INTERACTIONS+j][1] << ", " << Aij[i*MAX_NUM_INTERACTIONS+j][2] << "], xi = ["
-            //                  << x[i] << ", " << y[i] << ", " << z[i] << "], xj = " << x[ji] << ", " << y[ji] << ", " << z[ji] << "]";
-            //}
+            if(i < 10){
+                Logger(DEBUG) << "A[" << i << " -> " << ji << "] = [" << Aij[i*MAX_NUM_INTERACTIONS+j][0] << ", "
+                            << Aij[i*MAX_NUM_INTERACTIONS+j][1] << "], xi = ["
+                            << x[i] << ", " << y[i] << ", " << "], xj = [" << x[ji] << ", " << y[ji] << "]";
+            }
         }
     }
 }

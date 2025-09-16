@@ -9,6 +9,7 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
 
     // compute norm of effective face
     // double AijNorm = sqrt(Helper::dotProduct(Aij, Aij));
+    Logger(DEBUG) << "Aij: " << Aij[0] << ", " << Aij[1];
     AijNorm = sqrt(Helper::dotProduct(Aij, Aij));
 
     if(AijNorm > 0){
@@ -19,6 +20,9 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
 #endif
     }
     else{
+        Logger(WARN) << "Warning, AijNorm = 0 encountered, i = " << i;
+        Logger(WARN) << "Aborting for debugging";
+        exit(6);
         hatAij[0] = 0;
         hatAij[1] = 0;
 #if DIM == 3
