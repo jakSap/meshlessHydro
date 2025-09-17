@@ -33,3 +33,8 @@ kernelSize .025
 
 ; adiabatic index
 gamma 1.6666666666666667
+
+; Murnaghan EOS: K0, n, rho0
+MURN_K0 1.
+MURN_n 1.
+MURN_rho0 1.

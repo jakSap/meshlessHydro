@@ -38,9 +38,6 @@
 
 //// Use Murnaghan EOS, with related Murnaghan parameters below
 #define MURNAGHAN_EOS 1
-#define MURN_K0 1
-#define MURN_n 1
-#define MURN_rho0 1
 
 /// meshless finite mass method instead of meshless finite volume
 #define MESHLESS_FINITE_MASS 0

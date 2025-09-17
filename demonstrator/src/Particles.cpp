@@ -1499,7 +1499,51 @@ void Particles::slopeLimiter(double *f, double (*grad)[DIM], const double &kerne
         }
     }
 }
+#if MURNAGHAN_EOS
+double Particles::compGlobalTimestep(const double &MURN_K0, const double &MURN_n, const double &MURN_rho0,
+                                        const double &kernelSize){
+    double dt_ = std::numeric_limits<double>::max();
+    for (int i=0; i<N; ++i){
 
+        double vSig = std::numeric_limits<double>::min();
+        // double ci = sqrt(gamma*P[i]/rho[i]); // soundspeed @i
+        double ci = MURN_K0 / MURN_n * pow(rho[i] / MURN_rho0, MURN_n - 1);
+
+        // searching for maximum signal speed
+        for (int jn=0; jn<noi[i]; ++jn){
+            int j = nnl[i*MAX_NUM_INTERACTIONS+jn];
+
+            double cj = sqrt(gamma*P[j]/rho[j]); // soundspeed @j
+
+            double xij[DIM], vij[DIM];
+
+            xij[0] = x[i] - x[j];
+            xij[1] = y[i] - y[j];
+
+            vij[0] = vx[i] - vx[j];
+            vij[1] = vy[i] - vy[j];
+
+#if DIM == 3
+            xij[2] = z[i] - z[j];
+            vij[2] = vz[i] - vz[j];
+#endif
+            double vijxij = Helper::dotProduct(vij, xij)/sqrt(Helper::dotProduct(xij, xij));
+            vijxij = vijxij < 0. ? vijxij : 0.;
+
+            double vSig_i = ci+cj-vijxij;
+            vSig = vSig_i > vSig ? vSig_i : vSig;
+
+        }
+
+        // TODO: Note: Kernel size is double the actual kernel size
+        double dt = CFL*kernelSize/vSig;
+        dt_ = dt < dt_ ? dt : dt_;
+    }
+
+    return dt_;
+}
+
+#else
 double Particles::compGlobalTimestep(const double &gamma, const double &kernelSize){
     double dt_ = std::numeric_limits<double>::max();
     for (int i=0; i<N; ++i){
@@ -1540,7 +1584,7 @@ double Particles::compGlobalTimestep(const double &gamma, const double &kernelSi
 
     return dt_;
 }
-
+#endif // MURNAGHAN_EOS
 
 void Particles::compRiemannStatesLR(const double &dt, const double &kernelSize, const double &gamma){
     for (int i=0; i<N; ++i){

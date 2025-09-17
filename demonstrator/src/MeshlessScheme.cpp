@@ -75,9 +75,14 @@ void MeshlessScheme::run(){
         particles->compDensity(ghostParticles, config.kernelSize);
 #endif
 
-        Logger(INFO) << "    > Computing pressure";
+#if MURNAGHAN_EOS
+        Logger(INFO) << "    > Computing pressure Murnaghan EOS";
+        particles->compPressure(config.MURN_K0, config.MURN_n, config.MURN_rho0);
+#else
+        Logger(INFO) << "    > Computing pressure ideal gas EOS";
         particles->compPressure(config.gamma);
         //particles->printDensity(config.gamma);
+#endif // MURNAGHAN_EOS
 
         Logger(DEBUG) << "      SANITY CHECK > V_tot = " << particles->sumVolume();
         Logger(DEBUG) << "      SANITY CHECK > M_tot = " << particles->sumMass();
@@ -89,10 +94,14 @@ void MeshlessScheme::run(){
 #endif
 
 #if ADAPTIVE_TIMESTEP
-
-        Logger(INFO) << "    > Selecting global timestep ... ";
+#if MURNAGHAN_EOS
+        Logger(INFO) << "    > Selecting global timestep Murnaghan EOS... ";
+        timeStep = particles->compGlobalTimestep(config.MURN_K0, config.MURN_n, config.MURN_rho0, config.kernelSize);
+#else
+        Logger(INFO) << "    > Selecting global timestep ideal gas EOS... ";
         timeStep = particles->compGlobalTimestep(config.gamma, config.kernelSize);
-        //Logger(INFO) << "Time  > dt = " << timeStep << " selected.";
+#endif // MURNAGHAN_EOS
+//         //Logger(INFO) << "Time  > dt = " << timeStep << " selected.";
         if(dumpStep >= numDumpTimes){
             Logger(ERROR) << "Simulation did not abort after reaching timeEnd. Exiting.";
             exit(9);

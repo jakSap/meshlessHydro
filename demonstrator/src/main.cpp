@@ -64,8 +64,17 @@ int main(int argc, char *argv[]){
     Logger(INFO) << "    > Dump data to h5 file every " << config.h5DumpInterval << " steps";
     config.kernelSize = confP.getVal<double>("kernelSize");
     Logger(INFO) << "    > Using global kernel size h = " << config.kernelSize;
+#if MURNAGHAN_EOS
+    config.MURN_K0 = confP.getVal<double>("MURN_K0");
+    config.MURN_n = confP.getVal<double>("MURN_n");
+    config.MURN_rho0 = confP.getVal<double>("MURN_rho0");
+    Logger(INFO) << "    > Parameters for Murnaghan EOS:";
+    Logger(INFO) << "K0 = " << config.MURN_K0 << ", n = " << config.MURN_n << ", rho_0 = " << config.MURN_rho0;
+#else
     config.gamma = confP.getVal<double>("gamma");
     Logger(INFO) << "    > Adiabatic index for ideal gas EOS gamma = " << config.gamma;
+#endif // MURNAGHAN_EOS
+
 #if PERIODIC_BOUNDARIES
     auto periodicBoxLimits = confP.getObj("periodicBoxLimits");
     config.periodicBoxLimits[0] = periodicBoxLimits.getVal<double>("lowerX");

@@ -451,45 +451,21 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
     /* STEP 2: wave speed estimates
        all these speeds are along the interface normal, since uL and uR are */
     // For Einfeldt wave speed estimates, as in Toro:
-    const double eta_2 = 0.5 * sqrt(WL[1] * WR[1]) / pow(sqrt(WL[1]) + sqrt(WR[1]), 2)
-    const double dbarSqrd = (sqrt(WL[1]) * pow(aL, 2) + sqrt(WR[1]) * pow(aR, 2)) / (sqrt(WL[1]) + sqrt(WR[1])) + eta_2 * pow(uR - uL, 2)
+    const double eta_2 = 0.5 * sqrt(WL[0] * WR[0]) / pow(sqrt(WL[0]) + sqrt(WR[0]), 2)
+    const double dbarSqrd = (sqrt(WL[0]) * pow(aL, 2) + sqrt(WR[0]) * pow(aR, 2)) / (sqrt(WL[0]) + sqrt(WR[0])) + eta_2 * pow(uR - uL, 2)
     const double ubar = uL + uR
     const double SL = ubar - sqrt(dbarSqrd)
     const double SR = ubar + sqrt(dbarSqrd)
-#if DIM == 3
-    double qL = 1.0d;
-    if (pstar > WL[4] && WL[4] > 0.0d) {
-      qL = sqrtf(1.0d + 0.5d * hydro_gamma_plus_one * hydro_one_over_gamma *
-                            (pstar / WL[4] - 1.0d));
-    }
-    double qR = 1.0d;
-    if (pstar > WR[4] && WR[4] > 0.0d) {
-      qR = sqrtf(1.0d + 0.5d * hydro_gamma_plus_one * hydro_one_over_gamma *
-                            (pstar / WR[4] - 1.0d));
-    }
-    const double SLmuL = -aL * qL;
-    const double SRmuR = aR * qR;
-    const double Sstar =
-        (WR[4] - WL[4] + WL[0] * uL * SLmuL - WR[0] * uR * SRmuR) /
-        (WL[0] * SLmuL - WR[0] * SRmuR);
-#else
-    // double qL = 1.0d;
-    // if (pstar > WL[1] && WL[1] > 0.0d) {
-    //   qL = sqrtf(1.0d + 0.5d * hydro_gamma_plus_one * hydro_one_over_gamma *
-    //                         (pstar / WL[1] - 1.0d));
-    // }
-    // double qR = 1.0d;
-    // if (pstar > WR[1] && WR[1] > 0.0d) {
-    //   qR = sqrtf(1.0d + 0.5d * hydro_gamma_plus_one * hydro_one_over_gamma *
-    //                         (pstar / WR[1] - 1.0d));
-    // }
-    const double SLmuL = -aL * qL;
-    const double SRmuR = aR * qR;
+
+    const double SLmuL = SL - uL;
+    const double SRmuR = SR - uR
+
     const double Sstar =
         (WR[1] - WL[1] + WL[0] * uL * SLmuL - WR[0] * uR * SRmuR) /
         (WL[0] * SLmuL - WR[0] * SRmuR);
-#endif
-    // Logger(DEBUG) <<  "SStar: " << Sstar;
+
+
+        // Logger(DEBUG) <<  "SStar: " << Sstar;
     // Logger(DEBUG) << "SLmuL: " << SLmuL;
     // Logger(DEBUG) << "aR: " << aR << "SRmuR: " << SRmuR;
 
@@ -501,13 +477,13 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
         //const double v2 = uL * uL;
         const double eL =
             WL[4] * rhoLinv * hydro_one_over_gamma_minus_one + 0.5d * v2;
-        const double SL = SLmuL + uL;
+        // const double SL = SLmuL + uL;
 
         /* flux FL */
         totflux[0] = rhoLuL;
         /* these are the actual correct fluxes in the boosted lab frame
            (not rotated to interface frame) */
-        totflux[1] = rhoLuL * WL[1] + WL[4] * n[0];
+        totflux[1] = 0; //rhoLuL * WL[1] + WL[4] * n[0]; // Set energy flux zero for murnaghan EOS
         totflux[2] = rhoLuL * WL[2] + WL[4] * n[1];
         totflux[3] = rhoLuL * WL[3] + WL[4] * n[2];
         totflux[4] = rhoLuL * eL + WL[4] * uL;
@@ -521,7 +497,7 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
             const double rhoLSLSstarmuL = rhoLSL * SstarmuL * starfac;
 
             totflux[0] += rhoLSLstarfac;
-            totflux[1] += rhoLSLstarfac * WL[1] + rhoLSLSstarmuL * n[0];
+            // totflux[1] += rhoLSLstarfac * WL[1] + rhoLSLSstarmuL * n[0]; // Set energy flux zero for murnaghan EOS
             totflux[2] += rhoLSLstarfac * WL[2] + rhoLSLSstarmuL * n[1];
             totflux[3] += rhoLSLstarfac * WL[3] + rhoLSLSstarmuL * n[2];
             totflux[4] += rhoLSLstarfac * eL +
@@ -532,11 +508,11 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
         const double v2 = WR[1] * WR[1] + WR[2] * WR[2] + WR[3] * WR[3];
         const double eR =
             WR[4] * rhoRinv * hydro_one_over_gamma_minus_one + 0.5d * v2;
-        const double SR = SRmuR + uR;
+        // const double SR = SRmuR + uR;
 
         /* flux FR */
         totflux[0] = rhoRuR;
-        totflux[1] = rhoRuR * WR[1] + WR[4] * n[0];
+        totflux[1] = 0; //rhoRuR * WR[1] + WR[4] * n[0]; // Set energy flux zero for murnaghan EOS
         totflux[2] = rhoRuR * WR[2] + WR[4] * n[1];
         totflux[3] = rhoRuR * WR[3] + WR[4] * n[2];
         totflux[4] = rhoRuR * eR + WR[4] * uR;
@@ -550,7 +526,7 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
             const double rhoRSRSstarmuR = rhoRSR * SstarmuR * starfac;
 
             totflux[0] += rhoRSRstarfac;
-            totflux[1] += rhoRSRstarfac * WR[1] + rhoRSRSstarmuR * n[0];
+            // totflux[1] += rhoRSRstarfac * WR[1] + rhoRSRSstarmuR * n[0]; // Set energy flux zero for murnaghan EOS
             totflux[2] += rhoRSRstarfac * WR[2] + rhoRSRSstarmuR * n[1];
             totflux[3] += rhoRSRstarfac * WR[3] + rhoRSRSstarmuR * n[2];
             totflux[4] += rhoRSRstarfac * eR +
@@ -564,21 +540,21 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
         const double rhoLuL = WL[0] * uL;
         const double v2 = WL[2] * WL[2] + WL[3] * WL[3];
         //const double v2 = uL * uL;
-        const double eL =
-            WL[1] * rhoLinv * hydro_one_over_gamma_minus_one + 0.5d * v2;
-        const double SL = SLmuL + uL;
+        // const double eL =
+            // WL[1] * rhoLinv * hydro_one_over_gamma_minus_one + 0.5d * v2;
+        // const double SL = SLmuL + uL;
 
         /* flux FL */
 #if MESHLESS_FINITE_MASS
         totflux[0] = 0;
-        totflux[1] = rhoLuL * eL + WL[1] * uL;
+        totflux[1] = 0; //rhoLuL * eL + WL[1] * uL; // Set energy flux zero for murnaghan EOS
         totflux[2] = WL[1] * n[0];
         totflux[3] = WL[1] * n[1];
 #else
         totflux[0] = rhoLuL;
         /* these are the actual correct fluxes in the boosted lab frame
            (not rotated to interface frame) */
-        totflux[1] = rhoLuL * eL + WL[1] * uL;
+        totflux[1] = 0; //rhoLuL * eL + WL[1] * uL; // Set energy flux zero for murnaghan EOS
         totflux[2] = rhoLuL * WL[2] + WL[1] * n[0];
         totflux[3] = rhoLuL * WL[3] + WL[1] * n[1];
 #endif //MESHLESS_FINITE_MASS
@@ -593,14 +569,14 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
             const double rhoLSLSstarmuL = rhoLSL * SstarmuL * starfac;
 #if MESHLESS_FINITE_MASS
             totflux[0] += 0;
-            totflux[1] += rhoLSLstarfac * eL +
-                rhoLSLSstarmuL * (Sstar + WL[1] / (WL[0] * SLmuL));
+            // totflux[1] += rhoLSLstarfac * eL +
+            //     rhoLSLSstarmuL * (Sstar + WL[1] / (WL[0] * SLmuL)); // Set energy flux zero for murnaghan EOS
             totflux[2] += rhoLSLSstarmuL * n[0];
             totflux[3] += rhoLSLSstarmuL * n[1];
 #else
             totflux[0] += rhoLSLstarfac;
-            totflux[1] += rhoLSLstarfac * eL +
-                rhoLSLSstarmuL * (Sstar + WL[1] / (WL[0] * SLmuL));
+            // totflux[1] += rhoLSLstarfac * eL +
+            //     rhoLSLSstarmuL * (Sstar + WL[1] / (WL[0] * SLmuL)); // Set energy flux zero for murnaghan EOS
             totflux[2] += rhoLSLstarfac * WL[2] + rhoLSLSstarmuL * n[0];
             totflux[3] += rhoLSLstarfac * WL[3] + rhoLSLSstarmuL * n[1];
 #endif // MESHLESS_FINITE_MASS
@@ -618,13 +594,13 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
 #if MESHLESS_FINITE_MASS
         /* flux FR */
         totflux[0] = 0;
-        totflux[1] = rhoRuR * eR + WR[1] * uR;
+        totflux[1] = 0; //rhoRuR * eR + WR[1] * uR; // Set energy flux zero for murnaghan EOS
         totflux[2] = WR[1] * n[0];
         totflux[3] = WR[1] * n[1];
 #else
         /* flux FR */
         totflux[0] = rhoRuR;
-        totflux[1] = rhoRuR * eR + WR[1] * uR;
+        totflux[1] = 0; //rhoRuR * eR + WR[1] * uR; // Set energy flux zero for murnaghan EOS
         totflux[2] = rhoRuR * WR[2] + WR[1] * n[0];
         totflux[3] = rhoRuR * WR[3] + WR[1] * n[1];
 #endif //MESHLESS_FINITE_MASS
@@ -641,44 +617,43 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
 #if MESHLESS_FINITE_MASS
             //Logger(DEBUG) << Sstar;
             totflux[0] += 0;
-            totflux[1] += rhoRSRstarfac * eR +
-                rhoRSRSstarmuR * (Sstar + WR[1] / (WR[0] * SRmuR));
+            // totflux[1] += rhoRSRstarfac * eR +
+            //     rhoRSRSstarmuR * (Sstar + WR[1] / (WR[0] * SRmuR)); // Set energy flux zero for murnaghan EOS
             totflux[2] += rhoRSRSstarmuR * n[0];
             totflux[3] += rhoRSRSstarmuR * n[1];
 #else
             //Logger(DEBUG) << Sstar;
             totflux[0] += rhoRSRstarfac;
-            totflux[1] += rhoRSRstarfac * eR +
-                rhoRSRSstarmuR * (Sstar + WR[1] / (WR[0] * SRmuR));
+            // totflux[1] += rhoRSRstarfac * eR +
+            //     rhoRSRSstarmuR * (Sstar + WR[1] / (WR[0] * SRmuR)); // Set energy flux zero for murnaghan EOS
             totflux[2] += rhoRSRstarfac * WR[2] + rhoRSRSstarmuR * n[0];
             totflux[3] += rhoRSRstarfac * WR[3] + rhoRSRSstarmuR * n[1];
 #endif //MESHLESS_FINITE_MASS
         }
-    totflux[1] = 0
     }
-
-
-
-#endif // DIM == 3
-
-#if DIM == 3
+    
+    
+    
+    #endif // DIM == 3
+    
+    #if DIM == 3
     const double v2 = vij[0] * vij[0] + vij[1] * vij[1] + vij[2] * vij[2];
-
+    
     /* order is important: we first use the momentum fluxes to update the energy
-       flux and then de-boost the momentum fluxes! */
+    flux and then de-boost the momentum fluxes! */
     totflux[4] += vij[0] * totflux[1] + vij[1] * totflux[2] +
                   vij[2] * totflux[3] + 0.5f * v2 * totflux[0];
     totflux[1] += vij[0] * totflux[0];
     totflux[2] += vij[1] * totflux[0];
     totflux[3] += vij[2] * totflux[0];
 
-#else
+    #else
 #if MESHLESS_FINITE_MASS
     totflux[0] = 0;
-
+    
 #endif // MESHLESS_FINITE_MASS
 
-    const double v2 = vij[0] * vij[0] + vij[1] * vij[1];
+const double v2 = vij[0] * vij[0] + vij[1] * vij[1];
     /* order is important: we first use the momentum fluxes to update the energy
        flux and then de-boost the momentum fluxes! */
     totflux[1] += vij[0] * totflux[2] + vij[1] * totflux[3] +
@@ -689,6 +664,7 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
 #endif // If DIM == 3
 
 
+    totflux[1] = 0;
 
 }
 #else // MURNAGHAN_EOS

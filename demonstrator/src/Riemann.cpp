@@ -145,7 +145,7 @@ void Riemann::HLLCFluxMurn(double *Fij, const double &MURN_K0, const double &MUR
     Fij[0] *= AijNorm;
     Fij[1] *= AijNorm;
     //
-    // Option 1: Hadamarf product
+    // Option 1: Hadamard product
     // double v = sqrtf(pow(Fij[2], 2) + pow(Fij[3], 2));
     Fij[2] = Fij[2] * AijNorm;
     Fij[3] = Fij[3] * AijNorm;
