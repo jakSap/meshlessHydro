@@ -23,8 +23,9 @@ Riemann::Riemann(double *WR, double *WL, double *vFrame, double *Aij, int i) :
         Logger(WARN) << "Warning, AijNorm = 0 encountered, i = " << i;
         Logger(WARN) << "Aborting for debugging";
         exit(6);
-        hatAij[0] = 0;
-        hatAij[1] = 0;
+	
+        //hatAij[0] = 0;
+        //hatAij[1] = 0;
 #if DIM == 3
         hatAij[2] = 0;
 #endif
