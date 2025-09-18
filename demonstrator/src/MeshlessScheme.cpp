@@ -6,12 +6,19 @@
 
 
 MeshlessScheme::MeshlessScheme(Configuration config, Particles *particles,
-                               Domain::Cell bounds) : config { config }, particles { particles },
-                                                      domain(bounds)
+                               Domain::Cell bounds) : 
+        config { config }, particles { particles },
+                domain(bounds)
 #if PERIODIC_BOUNDARIES
-                                                      , ghostParticles(DIM*particles->N, true) // TODO: memory optimization
+                , ghostParticles(DIM*particles->N, true) // TODO: memory optimization
 #endif
-                                                      {
+// #if EOS == 0
+//         , MeshlessEOS(config.gamma)
+// #elif EOS == 1
+//         , MeshlessEOS(config.K0, config.murn_n, config.rho0)
+// #endif
+
+{
 
     Logger(INFO) << "    > Creating grid ... ";
     domain.createGrid(config.kernelSize);
@@ -76,7 +83,7 @@ void MeshlessScheme::run(){
 #endif
 
         Logger(INFO) << "    > Computing pressure";
-        particles->compPressure(config.gamma);
+        particles->compPressure();
         //particles->printDensity(config.gamma);
 
         Logger(DEBUG) << "      SANITY CHECK > V_tot = " << particles->sumVolume();

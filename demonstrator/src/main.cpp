@@ -64,9 +64,19 @@ int main(int argc, char *argv[]){
     Logger(INFO) << "    > Dump data to h5 file every " << config.h5DumpInterval << " steps";
     config.kernelSize = confP.getVal<double>("kernelSize");
     Logger(INFO) << "    > Using global kernel size h = " << config.kernelSize;
+#if EOS == 0
     config.gamma = confP.getVal<double>("gamma");
     Logger(INFO) << "    > Adiabatic index for ideal gas EOS gamma = " << config.gamma;
-#if PERIODIC_BOUNDARIES
+#elif EOS == 1
+    config.K0 = confP.getVal<double>("MURN_K0");
+    Logger(INFO) << "    > Bulk modulus for Murnaghan EOS K0 = " << config.K0;
+    config.murn_n = confP.getVal<double>("MURN_n");
+    Logger(INFO) << "    > Murnaghan exponent for Murnaghan EOS n = " << config.murn_n;
+    config.rho0 = confP.getVal<double>("MURN_rho0");
+    Logger(INFO) << "    > Relaxed density for Murnaghan EOS rho0 = " << config.rho0;
+#endif // EOS
+
+    #if PERIODIC_BOUNDARIES
     auto periodicBoxLimits = confP.getObj("periodicBoxLimits");
     config.periodicBoxLimits[0] = periodicBoxLimits.getVal<double>("lowerX");
     config.periodicBoxLimits[DIM] = periodicBoxLimits.getVal<double>("upperX");
@@ -87,7 +97,13 @@ int main(int argc, char *argv[]){
     Logger(INFO) << "    > Reading initial distribution ...";
 
     InitialDistribution initDist { config.initFile };
-    Particles particles { initDist.getNumberOfParticles() };
+    Particles particles { initDist.getNumberOfParticles(),
+#if EOS == 0
+        config.gamma
+#elif EOS == 1
+        config.K0, config.murn_n, config.rho0
+#endif
+    };
     initDist.getAllParticles(particles);
 
     Logger(INFO) << "    > N = " << particles.N;

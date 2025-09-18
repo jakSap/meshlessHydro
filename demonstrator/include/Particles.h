@@ -14,6 +14,7 @@
 #include "Domain.h"
 #include "Helper.h"
 #include "Riemann.h"
+#include "EquationOfState.h"
 
 namespace Kernel {
     double cubicSpline(const double &r, const double &h);
@@ -27,8 +28,21 @@ namespace Kernel {
 class Particles {
 
 public:
-    Particles(int numParticles, bool ghosts=false);
+    Particles(int numParticles, 
+#if EOS == 0
+        double gamma,
+#elif EOS == 1
+        double K0, double murn_n, double rho0,
+#endif
+        bool ghosts=false);
     ~Particles();
+
+    EquationOfState MeshlessEOS;
+// #if EOS == 0
+//     EquationOfState MeshlessEOS; #(gamma);
+// #elif EOS == 1
+//     EquationOfState MeshlessEOS;(K0, murn_n, rho0);
+// #endif
 
     int N;
 #if USE_MATID
@@ -140,7 +154,7 @@ public:
     void gradient(double *f, double (*grad)[DIM]);
     void slopeLimiter(const double &kernelSize,
                       Particles *ghostParticles=nullptr);
-    void compPressure(const double &gamma);
+    void compPressure();
     void compEffectiveFace();
 
     double compGlobalTimestep(const double &gamma, const double &kernelSize);

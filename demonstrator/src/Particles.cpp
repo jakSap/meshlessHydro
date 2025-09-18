@@ -64,7 +64,21 @@ double Kernel::dWdh(const double &r, const double &h){
     }
 }
 
-Particles::Particles(int numParticles, bool ghosts) : N { numParticles }, ghosts { ghosts }{
+Particles::Particles(int numParticles,
+#if EOS == 0
+            double gamma
+#elif EOS == 1
+            double K0, double murn_n, double rho0
+#endif
+            , bool ghosts
+            ) : N { numParticles }, ghosts { ghosts },
+#if EOS == 0
+        MeshlessEOS(gamma)
+#elif EOS == 1
+        MeshlessEOS(K0, murn_n, rho0)
+#endif
+
+{
     // allocate memory
 #if USE_MATID
     matId = new int[numParticles];
@@ -372,7 +386,7 @@ void Particles::gridNNS(Domain &domain, const double &kernelSize){
 // For comparable ICs: This sets the internal energies so that P = 2.5 everywhere
 void Particles::setInternalEnergy(double Pressure, const double gamma){
     for (int i = 0; i < N; i++){
-        u[i] = Pressure / ((gamma - 1) * rho[i]);
+        u[i] = MeshlessEOS.EOSInternalEnergy(rho[i], Pressure);
     }
 }
 
@@ -1313,13 +1327,14 @@ void Particles::gradient(double *f, double (*grad)[DIM]){
     }
 }
 
-void Particles::compPressure(const double &gamma){
+void Particles::compPressure(){
     for (int i=0; i<N; ++i){
         // if (i % 1 == 0){
         //     Logger(DEBUG) << "Paricle " << i << " has density " << rho[i] << " and u[i] " << u[i];
         // }
-        P[i] = (gamma-1.)*rho[i]*u[i];
-        // TODOMURN:Change to Murnaghan pressure 
+        // P[i] = (MeshlessEOS.gamma-1.)*rho[i]*u[i]
+
+        P[i] = MeshlessEOS.EOSPressure(rho[i], u[i]);
         // std::cout << P[i] << std::endl;
 //#if DIM == 3
 //        P[i] = (gamma-1.)*rho[i]*(u[i]+.5*(vx[i]*vx[i]+vy[i]*vy[i]+vz[i]*vz[i]));
@@ -1496,8 +1511,8 @@ double Particles::compGlobalTimestep(const double &gamma, const double &kernelSi
     for (int i=0; i<N; ++i){
 
         double vSig = std::numeric_limits<double>::min();
-        double ci = sqrt(gamma*P[i]/rho[i]); // soundspeed @i
-
+        // double ci = sqrt(gamma*P[i]/rho[i]); // soundspeed @i
+        double ci = MeshlessEOS.EOSSoundSpeed(rho[i], -1, P[i]); // SOundspeed @i, -1 is a dummy
         // searching for maximum signal speed
         for (int jn=0; jn<noi[i]; ++jn){
             int j = nnl[i*MAX_NUM_INTERACTIONS+jn];

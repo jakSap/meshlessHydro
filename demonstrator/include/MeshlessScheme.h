@@ -12,6 +12,7 @@
 #include "Logger.h"
 #include "Domain.h"
 #include "Helper.h"
+// #include "EquationOfState.h"
 
 class MeshlessScheme {
 
@@ -24,7 +25,13 @@ public:
         int h5DumpInterval;
         double periodicBoxLimits[2 * DIM];
         double kernelSize;
+#if EOS == 0
         double gamma; // adiabatic index
+#elif EOS == 1
+        double K0;
+        double murn_n;
+        double rho0;
+#endif
     };
 
     MeshlessScheme(Configuration config, Particles *particles, Domain::Cell domain);

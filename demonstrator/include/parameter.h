@@ -20,6 +20,11 @@
 /// maximum number of interactions for each particle
 #define MAX_NUM_INTERACTIONS 200
 
+/* Define which equation of state to use.
+For now, ideal gas (=0) and murnaghan EOS (=1) are supported: */
+#define EOS 0 // Ideal gas EOS
+// #define EOS 1 // Murnaghan EOS
+
 /** maximum interactions with ghost particles
  *  ignored when `PERIODIC_BOUNDARIES` is not set
 **/
