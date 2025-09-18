@@ -24,7 +24,13 @@ public:
         int h5DumpInterval;
         double periodicBoxLimits[2 * DIM];
         double kernelSize;
+#if MURNAGHAN_EOS
+        double MURN_K0;
+        double MURN_n;
+        double MURN_rho0;
+#else
         double gamma; // adiabatic index
+#endif // Murnaghan EOS
     };
 
     MeshlessScheme(Configuration config, Particles *particles, Domain::Cell domain);

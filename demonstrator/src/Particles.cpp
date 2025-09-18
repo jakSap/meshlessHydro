@@ -1513,8 +1513,8 @@ double Particles::compGlobalTimestep(const double &MURN_K0, const double &MURN_n
         for (int jn=0; jn<noi[i]; ++jn){
             int j = nnl[i*MAX_NUM_INTERACTIONS+jn];
 
-            double cj = sqrt(gamma*P[j]/rho[j]); // soundspeed @j
-
+            double cj = MURN_K0 / MURN_n * pow(rho[j] / MURN_rho0, MURN_n - 1); // soundspeed @j
+            
             double xij[DIM], vij[DIM];
 
             xij[0] = x[i] - x[j];
@@ -1585,6 +1585,258 @@ double Particles::compGlobalTimestep(const double &gamma, const double &kernelSi
     return dt_;
 }
 #endif // MURNAGHAN_EOS
+
+#if MURNAGHAN_EOS
+void Particles::compRiemannStatesLR(const double &dt, const double &kernelSize){
+    for (int i=0; i<N; ++i){
+        double xij[DIM];
+        //double vFrame[DIM];
+        // helper vectors
+        double xijxi[DIM], xjxi[DIM], xijxj[DIM];
+
+        for (int jn=0; jn<noi[i]; ++jn){
+            int j = nnl[i*MAX_NUM_INTERACTIONS+jn];
+
+            xjxi[0] = x[j] - x[i];
+            xjxi[1] = y[j] - y[i];
+
+            //xij[0] = x[i] + kernelSize/2. * xjxi[0];
+            //xij[1] = y[i] + kernelSize/2. * xjxi[1];
+
+#if FIRST_ORDER_QUAD_POINT
+            xij[0] = (x[i] + x[j])/2.;
+            xij[1] = (y[i] + y[j])/2.;
+
+            xijxj[0] = .5*(x[i] - x[j]);
+            xijxj[1] = .5*(y[i] - y[j]);
+
+            xijxi[0] = .5*(x[j] - x[i]);
+            xijxi[1] = .5*(y[j] - y[i]);
+
+#else
+            xij[0] = x[i] + kernelSize/4. * xjxi[0];
+            xij[1] = y[i] + kernelSize/4. * xjxi[1];
+
+            xijxi[0] = xij[0] - x[i];
+            xijxi[1] = xij[1] - y[i];
+
+            xijxj[0] = xij[0] - x[j];
+            xijxj[1] = xij[1] - y[j];
+#endif
+
+#if DIM==3
+#if FIRST_ORDER_QUAD_POINT
+            xij[2] = (z[i] + z[j])/2.;
+            xijxj[2] = .5*(z[i] - z[j]);
+            xijxi[2] = .5*(z[j] - z[i]);
+#else
+            xjxi[2] = z[j] - z[i];
+            //xij[2] = z[i] + kernelSize/2. * xjxi[2];
+
+            xij[2] = z[i] + kernelSize/4. * xjxi[2];
+
+            xijxi[2] = xij[2] - z[i];
+            xijxj[2] = xij[2] - z[j];
+#endif
+#endif
+
+            int iW = i*MAX_NUM_INTERACTIONS+jn;
+#if !MOVE_PARTICLES
+            vFrame[iW][0] = 0.;
+            vFrame[iW][1] = 0.;
+#if DIM==3
+            vFrame[iW][2] = 0.;
+#endif
+#else // MOVE_PARTICLES
+#if FIRST_ORDER_QUAD_POINT
+            vFrame[iW][0] = (vx[i] + vx[j])/2.;
+            vFrame[iW][1] = (vy[i] + vy[j])/2.;
+#if DIM==3
+            vFrame[iW][2] = (vz[i] + vz[j])/2.;
+#endif
+#else
+            double dotProd = Helper::dotProduct(xijxi, xjxi);
+            double dSqr = Helper::dotProduct(xjxi, xjxi);
+
+            vFrame[iW][0] = vx[i] + (vx[j]-vx[i]) * dotProd/dSqr;
+            vFrame[iW][1] = vy[i] + (vy[j]-vy[i]) * dotProd/dSqr;
+#if DIM==3
+            vFrame[iW][2] = vz[i] + (vz[j]-vz[i]) * dotProd/dSqr;
+#endif
+#endif // FIRST_ORDER_QUAD_POINT
+#endif // MOVE_PARTICLES
+            // boost frame to effective face
+            WijR[iW][0] = rho[i];
+            WijL[iW][0] = rho[j];
+            WijR[iW][1] = P[i];
+            WijL[iW][1] = P[j];
+            WijR[iW][2] = vx[i] - vFrame[iW][0];
+            WijL[iW][2] = vx[j] - vFrame[iW][0];
+            WijR[iW][3] = vy[i] - vFrame[iW][1];
+            WijL[iW][3] = vy[j] - vFrame[iW][1];
+#if DIM == 3
+            WijR[iW][4] = vz[i] - vFrame[iW][2];
+            WijL[iW][4] = vz[j] - vFrame[iW][2];
+#endif
+
+#if PAIRWISE_LIMITER
+            double WijR_buf[DIM+2], WijL_buf[DIM+2];
+            for(int nu=0; nu<DIM+2; ++nu){
+                WijR_buf[nu] = WijR[iW][nu];
+                WijL_buf[nu] = WijL[iW][nu];
+            }
+#endif
+
+            //if (i == 46){// && jn == 28){
+            //    Logger(DEBUG) << "        j = " << j
+            //                  << ", rhoL = " << WijL[iW][0] << ", rhoR = " << WijR[iW][0]
+            //                  << ", uL = " << WijL[iW][2] << ", uR = " << WijR[iW][2]
+            //                  << ", PL = " << WijL[iW][1] << ", PR = " << WijR[iW][1];
+            //}
+
+            //if(i == 46){// && jn == 28){
+            //    Logger(DEBUG) << "vFrame[iW] = [" << vFrame[iW][0]
+            //                << ", " << vFrame[iW][1] << "]"
+            //                << ", rhoGrad[i] = [" << rhoGrad[i][0]
+            //                << ", " << rhoGrad[i][1] << "]";
+            //    Logger(DEBUG) << "PGrad[i] = [" << PGrad[i][0] << ", " << PGrad[i][1]
+            //                << "], PGrad[j] = [" << PGrad[j][0] << ", " << PGrad[j][1]
+            //                << "], rho[i] = " << rho[i]
+                //            << "], xijxi = [" << xijxi[0] << ", " << xijxi[1]
+                //            << "], xijxj = [" << xijxj[0] << ", " << xijxj[1] << "]";
+            //                << ", xj = [" << x[j] << ", " << y[j] << "] @" << j;
+                //exit(5);
+            //}
+            // reconstruction at effective face
+            WijR[iW][0] += Helper::dotProduct(rhoGrad[i], xijxi);
+            WijL[iW][0] += Helper::dotProduct(rhoGrad[j], xijxj);
+            WijR[iW][1] += Helper::dotProduct(PGrad[i], xijxi);
+            WijL[iW][1] += Helper::dotProduct(PGrad[j], xijxj);
+            WijR[iW][2] += Helper::dotProduct(vxGrad[i], xijxi);
+            WijL[iW][2] += Helper::dotProduct(vxGrad[j], xijxj);
+            WijR[iW][3] += Helper::dotProduct(vyGrad[i], xijxi);
+            WijL[iW][3] += Helper::dotProduct(vyGrad[j], xijxj);
+#if DIM==3
+            WijR[iW][4] += Helper::dotProduct(vzGrad[i], xijxi);
+            WijL[iW][4] += Helper::dotProduct(vzGrad[j], xijxj);
+#endif
+
+#if PAIRWISE_LIMITER
+            double xijxi_abs = 0., xijxj_abs = 0., xjxi_abs = 0.;
+            for(int alpha=0; alpha<DIM; ++alpha){
+                xijxi_abs += xijxi[alpha]*xijxi[alpha];
+                xijxj_abs += xijxj[alpha]*xijxj[alpha];
+                xjxi_abs += xjxi[alpha]*xjxi[alpha];
+            }
+            xijxi_abs = sqrt(xijxi_abs);
+            xijxj_abs = sqrt(xijxj_abs);
+            xjxi_abs = sqrt(xjxi_abs);
+
+            for(int nu=0; nu<DIM+2; ++nu){
+                WijR[iW][nu] = pairwiseLimiter(WijR[iW][nu], WijR_buf[nu], WijL_buf[nu], xijxi_abs, xjxi_abs);
+                WijL[iW][nu] = pairwiseLimiter(WijL[iW][nu], WijL_buf[nu], WijR_buf[nu], xijxj_abs, xjxi_abs);
+            }
+#endif
+
+#if DEBUG_LVL
+            if(WijR[iW][1] < 0. || WijL[iW][1] < 0.) {
+                Logger(WARN) << "FACE RECONSTRUCTION > Negative pressure encountered@(i = " << i << ", j = " << j << ")";
+                Logger(DEBUG) << "rhoL = " << WijL[iW][0] << ", rhoR = " << WijR[iW][0]
+                              << ", uL = " << WijL[iW][2] << ", uR = " << WijR[iW][2]
+                              << ", PL = " << WijL[iW][1] << ", PR = " << WijR[iW][1]
+                              << ", PGrad[i] = [" << PGrad[i][0] << ", " << PGrad[i][1]
+#if DIM == 3
+                              << ", " << PGrad[i][2]
+#endif
+                              << "] , PGrad[j] = [" << PGrad[j][0] << ", " << PGrad[j][1]
+#if DIM == 3
+                              << ", " << PGrad[j][2]
+#endif
+                              << "]";
+            }
+#endif
+            //if (i == 46){
+            //    Logger(DEBUG) << "        j = " << j
+            //                  << ", rhoL = " << WijL[iW][0] << ", rhoR = " << WijR[iW][0]
+            //                  << ", uL = " << WijL[iW][2] << ", uR = " << WijR[iW][2]
+            //                  << ", PL = " << WijL[iW][1] << ", PR = " << WijR[iW][1];
+            //}
+
+            // predict half a timestep
+            double viDiv = vxGrad[i][0] + vyGrad[i][1];
+            double vjDiv = vxGrad[j][0] + vyGrad[j][1];
+#if DIM==3
+            viDiv += vzGrad[i][2];
+            vjDiv += vzGrad[j][2];
+#endif
+            // density
+            WijR[iW][0] -= dt/2. * (rho[i] * viDiv + (vx[i]-vFrame[iW][0])*rhoGrad[i][0] + (vy[i]-vFrame[iW][1])*rhoGrad[i][1]);
+            WijL[iW][0] -= dt/2. * (rho[j] * vjDiv + (vx[j]-vFrame[iW][0])*rhoGrad[j][0] + (vy[j]-vFrame[iW][1])*rhoGrad[j][1]);
+
+            // energy
+            // WijR[iW][1] -= dt/2. * (gamma*P[i] * viDiv + (vx[i]-vFrame[iW][0])*PGrad[i][0] + (vy[i]-vFrame[iW][1])*PGrad[i][1]);
+            // WijL[iW][1] -= dt/2. * (gamma*P[j] * vjDiv + (vx[j]-vFrame[iW][0])*PGrad[j][0] + (vy[j]-vFrame[iW][1])*PGrad[j][1]);
+
+            // velocities
+            // TODO: center vL and vR and update vFrame (compare to GIZMO code hydro_core_meshless.h:178ff) ??
+            WijR[iW][2] -= dt/2. * (PGrad[i][0]/rho[i] + (vx[i]-vFrame[iW][0])*vxGrad[i][0] + (vy[i]-vFrame[iW][1])*vxGrad[i][1]);
+            WijL[iW][2] -= dt/2. * (PGrad[j][0]/rho[j] + (vx[j]-vFrame[iW][0])*vxGrad[j][0] + (vy[j]-vFrame[iW][1])*vxGrad[j][1]);
+            WijR[iW][3] -= dt/2. * (PGrad[i][1]/rho[i] + (vx[i]-vFrame[iW][0])*vyGrad[i][0] + (vy[i]-vFrame[iW][1])*vyGrad[i][1]);
+            WijL[iW][3] -= dt/2. * (PGrad[j][1]/rho[j] + (vx[j]-vFrame[iW][0])*vyGrad[j][0] + (vy[j]-vFrame[iW][1])*vyGrad[j][1]);
+#if DIM==3
+            // density
+            WijR[iW][0] -= dt/2. * (vz[i]-vFrame[iW][2])*rhoGrad[i][2];
+            WijL[iW][0] -= dt/2. * (vz[j]-vFrame[iW][2])*rhoGrad[j][2];
+
+            // energy
+            WijR[iW][1] -= dt/2. * (vz[i]-vFrame[iW][2])*PGrad[i][2];
+            WijL[iW][1] -= dt/2. * (vz[j]-vFrame[iW][2])*PGrad[j][2];
+
+#if DEBUG_LVL
+            if(WijR[iW][1] < 0. || WijL[iW][1] < 0.) {
+                Logger(WARN) << "TIME PREDICTION > Negative pressure encountered@(i = " << i << ", j = " << j << ")";
+
+                double timePredP_i = dt / 2. * (gamma * P[i] * viDiv + (vx[i] - vFrame[iW][0]) * PGrad[i][0] +
+                                                (vy[i] - vFrame[iW][1]) * PGrad[i][1]
+#if DIM == 3
+                                                + (vz[i] - vFrame[iW][2]) * PGrad[i][2]
+#endif
+                );
+                Logger(DEBUG) << "Pressure timestep prediction term @i: " << timePredP_i;
+
+                double timePredP_j = dt / 2. * (gamma * P[j] * viDiv + (vx[j] - vFrame[iW][0]) * PGrad[j][0] +
+                                                (vy[j] - vFrame[iW][1]) * PGrad[j][1]
+#if DIM == 3
+                                                + (vz[j] - vFrame[iW][2]) * PGrad[j][2]
+#endif
+                );
+                Logger(DEBUG) << "Pressure timestep prediction term @j: " << timePredP_j;
+            }
+#endif
+
+            // velocities
+            WijR[iW][2] -= dt/2. * (vz[i]-vFrame[iW][2])*vxGrad[i][2];
+            WijL[iW][2] -= dt/2. * (vz[i]-vFrame[iW][2])*vxGrad[j][2];
+            WijR[iW][3] -= dt/2. * (vz[i]-vFrame[iW][2])*vyGrad[i][2];
+            WijL[iW][3] -= dt/2. * (vz[i]-vFrame[iW][2])*vyGrad[j][2];
+#if DIM == 3
+            WijR[iW][4] -= dt/2. * (PGrad[i][2]/rho[i] + (vx[i]-vFrame[iW][0])*vzGrad[i][0] + (vy[i]-vFrame[iW][1])*vzGrad[i][1] + (vz[i]-vFrame[iW][2])*vzGrad[i][2]);
+            WijL[iW][4] -= dt/2. * (PGrad[j][2]/rho[j] + (vx[j]-vFrame[iW][0])*vzGrad[j][0] + (vy[j]-vFrame[iW][1])*vzGrad[j][1] + (vz[j]-vFrame[iW][2])*vzGrad[j][2]);
+#endif
+#endif
+
+            //if (i == 46){// && jn == 28){
+            //    Logger(DEBUG) << "        j = " << j
+            //                  << ", rhoL = " << WijL[iW][0] << ", rhoR = " << WijR[iW][0]
+            //                  << ", uL = " << WijL[iW][2] << ", uR = " << WijR[iW][2]
+            //                  << ", PL = " << WijL[iW][1] << ", PR = " << WijR[iW][1];
+            //}
+
+        }
+    }
+}
+
+#else
 
 void Particles::compRiemannStatesLR(const double &dt, const double &kernelSize, const double &gamma){
     for (int i=0; i<N; ++i){
@@ -1834,6 +2086,7 @@ void Particles::compRiemannStatesLR(const double &dt, const double &kernelSize, 
         }
     }
 }
+#endif // MURNAGHAN EOS
 
 double Particles::pairwiseLimiter(double phi0, double phi_i, double phi_j, double xijxi_abs, double xjxi_abs) {
     double phi_ = phi_i;
@@ -1886,6 +2139,180 @@ double Particles::pairwiseLimiter(double phi0, double phi_i, double phi_j, doubl
     }
     return phi_;
 }
+
+#if MURNAGHAN_EOS
+
+void Particles::solveRiemannProblems(const double &MURN_K0, const double &MURN_n, const double &MURN_rho0,
+                                    const Particles &ghostParticles){
+
+#if USE_HLLC
+    double n_unit[DIM];
+#endif
+
+    for (int i=0; i<N; ++i){
+
+        //if (!(i % (N/VERBOSITY_PARTICLES))){
+        //    Logger(DEBUG) << "        > i = " << i;
+        //}
+        //Logger(DEBUG) << "        > i = " << i << ", V = " << 1./omega[i];
+
+        for (int j=0; j<noi[i]; ++j){
+            int ii = i*MAX_NUM_INTERACTIONS+j; // interaction index
+            //if (i == 9 && j == 11){
+                //Logger(DEBUG) << "i = " << i << ", ii = " << ii << ", j = " << nnl[ii];
+                //Logger(DEBUG) << "xi = [" << x[i] << ", " << y[i] << "], xj = ["
+                //              << x[nnl[ii]] << ", " << y[nnl[ii]] << "] , vi = ["
+                //              << vx[i] << ", " << vy[i] << "], vj = ["
+                //              << vx[nnl[ii]] << ", " << vy[nnl[ii]] << "]";
+                //Logger(DEBUG) << "vFrame = [" << vFrame[ii][0] << ", " << vFrame[ii][1] << "]";
+                //Logger(DEBUG) << "rhoL = " << WijL[ii][0] << ", rhoR = " << WijR[ii][0]
+                //              << ", uL = " << WijL[ii][2] << ", uR = " << WijR[ii][2]
+                //              << ", PL = " << WijL[ii][1] << ", PR = " << WijR[ii][1]
+                //              << ", Aij = [" << Aij[ii][0] << ", " << Aij[ii][1] << "]";
+            //}
+
+            //Logger(DEBUG) << "*WR = " << WijR[ii] << ", *WL = " << WijL[ii];
+            //Logger(DEBUG) << "i = " << i << ", j = " << nnl[ii] << ", PR = " << WijR[ii][1] << ", PL = " << WijL[ii][1];
+
+            if(WijR[ii][1] < 0. || WijL[ii][1] < 0.){
+                Logger(WARN) << "Negative pressure encountered@(i = " << i << ", j = " << j << ") Very bad :( !!";
+                Logger(DEBUG) << "    > rhoL = " << WijL[ii][0] << ", rhoR = " << WijR[ii][0]
+                              << ", uL = " << WijL[ii][2] << ", uR = " << WijR[ii][2]
+                              << ", PL = " << WijL[ii][1] << ", PR = " << WijR[ii][1]
+                              << ", Aij = [" << Aij[ii][0] << ", " << Aij[ii][1]
+#if DIM ==3
+                              << ", " << Aij[ii][2]
+#endif
+                              << "]";
+
+#if DEBUG_LVL > 1
+                Logger(DEBUG) << "Aborting for debugging.";
+                exit(6);
+#endif
+                //if(WijR[ii][1] < 0.){
+                //    WijR[ii][1] = PRESSURE_FLOOR;
+                //}
+                //if(WijL[ii][1] < 0.){
+                //    WijL[ii][1] = PRESSURE_FLOOR;
+                //}
+            }
+
+            bool compute = true;
+            int iij;
+#if ENFORCE_FLUX_SYM
+            //int ii = i*MAX_NUM_INTERACTIONS+j; // interaction index i->j
+            int ji = nnl[ii]; // index i of particle j
+            if(ji<i) {
+                compute = false;
+                // search neighbor i in nnl[] of j
+                int ij;
+                for (ij = 0; ij < noi[ji]; ++ij) {
+                    if (nnl[ij + ji * MAX_NUM_INTERACTIONS] == i) break;
+                }
+                iij = ji * MAX_NUM_INTERACTIONS + ij; // interaction index j->i
+            }
+#endif
+            if (compute){
+#if USE_HLLC
+                // Logger(DEBUG) << " i = " << i << " j = " << nnl[ii] << " mF = " << Fij[ii][0];
+
+            //    calcNunit(i, ii, n_unit);
+                // Logger(DEBUG) << "Ok " << j << " "<< i;
+                Riemann solver { WijL[ii], WijR[ii], vFrame[ii], Aij[ii], i};
+#if MURNAGHAN_EOS
+                solver.HLLCFluxMurn(Fij[ii], MURN_K0, MURN_n, MURN_rho0);
+#else
+                solver.HLLCFlux(Fij[ii], gamma);
+#endif //MURNAGHAN_EOS
+#else
+#if MURNAGHAN_EOS
+                Logger(WARN) >> "Murnaghan EOS not implemented for exact Riemann solver, aborting!";
+                exit(6);
+#else
+                Riemann solver { WijL[ii], WijR[ii], vFrame[ii], Aij[ii] , i };
+                solver.exact(Fij[ii], gamma);
+#endif // MURNAGHAN_EOS
+#endif // USE_HLLC
+
+            } else {
+                for(int d=0; d<DIM+2; ++d){
+                    Fij[ii][d] = -Fij[iij][d];
+                }
+            }
+
+            //if(i == 6){//&& j==11){
+            //    Logger(DEBUG) << "Fluxes = [" << Fij[ii][0] << ", " << Fij[ii][1] << ", " << Fij[ii][2] << ", " << Fij[ii][3] << "]";
+            //}
+        }
+
+#if PERIODIC_BOUNDARIES
+        for (int j=0; j<noiGhosts[i]; ++j){
+            int ii = i*MAX_NUM_GHOST_INTERACTIONS+j; // interaction index
+            //Logger(DEBUG) << "i = " << i << ", ii = " << ii << ", jGhost = " << nnlGhosts[ii];
+            //Logger(DEBUG) << "xi = [" << x[i] << ", " << y[i] << "], xj = ["
+            //              << ghostParticles.x[nnlGhosts[ii]] << ", " << ghostParticles.y[nnlGhosts[ii]] << "]";
+            //Logger(DEBUG) << "vFrameGhosts = [" << vFrameGhosts[ii][0] << ", " << vFrameGhosts[ii][1] << "]";
+
+            if(WijRGhosts[ii][1] < 0. || WijLGhosts[ii][1] < 0.){
+                Logger(WARN) << "Negative pressure encountered@(i = " << i << ", jGhost = " << j << ") Very bad :( !!";
+                Logger(DEBUG) << "rhoL = " << WijLGhosts[ii][0] << ", rhoR = " << WijRGhosts[ii][0]
+                              << ", uL = " << WijLGhosts[ii][2] << ", uR = " << WijRGhosts[ii][2]
+                              << ", PL = " << WijLGhosts[ii][1] << ", PR = " << WijRGhosts[ii][1];
+#if DEBUG_LVL
+                Logger(DEBUG) << "Aborting for debugging.";
+                exit(6);
+#endif
+            }
+
+            bool compute = true;
+            int iij;
+#if ENFORCE_FLUX_SYM
+            //int ii = i*MAX_NUM_GHOST_INTERACTIONS+j; // interaction index i->j
+            int ji = nnlGhosts[ii]; // index i of particle j
+            if (ghostParticles.parent[ji]<i){
+                compute = false;
+                int ij;
+                // search neighbor i in nnlGhosts[] of j
+                for (ij=0; ij<noiGhosts[ghostParticles.parent[ji]]; ++ij){
+                    if(ghostParticles.parent[nnlGhosts[ij+ghostParticles.parent[ji]*MAX_NUM_GHOST_INTERACTIONS]] == i) break;
+                }
+                iij = ij+ghostParticles.parent[ji]*MAX_NUM_GHOST_INTERACTIONS;
+            }
+#endif
+
+            if (compute) {
+#if USE_HLLC
+                // Logger(DEBUG) << " i = " << i << " j = " << nnl[ii] << " mF = " << Fij[ii][0];
+
+                // calcNunit(i, ii, n_unit);
+#if MURNAGHAN_EOS
+                Riemann solver{WijLGhosts[ii], WijRGhosts[ii], vFrameGhosts[ii], AijGhosts[ii], i};
+                solver.HLLCFluxMurn(FijGhosts[ii], MURN_K0, MURN_n, MURN_rho0);
+#else
+                Riemann solver{WijLGhosts[ii], WijRGhosts[ii], vFrameGhosts[ii], AijGhosts[ii], i};
+                solver.HLLCFlux(FijGhosts[ii], gamma);
+#endif // MURNAGHAN_EOS
+#else // USE_HLLC
+#if MURNAGHAN_EOS
+                Logger(WARN) >> "Periodic boundaries with exact Riemann solvers not implemented for Murnaghan EOS, aborting...";
+                error(6);
+#else
+                Riemann solver{WijLGhosts[ii], WijRGhosts[ii], vFrameGhosts[ii], AijGhosts[ii], i};
+                solver.exact(FijGhosts[ii], gamma);
+#endif // MURNAGHAN_EOS
+#endif // USE_HLLC
+
+            } else {
+                for(int d=0; d<DIM+2; ++d){
+                    FijGhosts[ii][d] = -FijGhosts[iij][d];
+                }
+            }
+        }
+#endif
+    }
+}
+
+#else
 
 void Particles::solveRiemannProblems(const double &gamma, const Particles &ghostParticles){
 
@@ -2041,6 +2468,7 @@ void Particles::solveRiemannProblems(const double &gamma, const Particles &ghost
 #endif
     }
 }
+#endif // Murnaghan EOS
 
 void Particles::collectFluxes(Helper &helper, const Particles &ghostParticles){
     for (int i=0; i<N; ++i){
@@ -2671,7 +3099,159 @@ void Particles::compEffectiveFace(const Particles &ghostParticles){
         }
     }
 }
+#if MURNAGHAN_EOS
+void Particles::compRiemannStatesLR(const double &dt, const double &kernelSize,
+                                  const Particles &ghostParticles){
 
+    for (int i=0; i<N; ++i){
+        double xij[DIM];
+        //double vFrame[DIM];
+        // helper vectors
+        double xijxi[DIM], xjxi[DIM], xijxj[DIM];
+
+        for (int jn=0; jn<noiGhosts[i]; ++jn){
+
+            int j = nnlGhosts[i*MAX_NUM_GHOST_INTERACTIONS+jn];
+
+            xjxi[0] = ghostParticles.x[j] - x[i];
+            xjxi[1] = ghostParticles.y[j] - y[i];
+
+            //xij[0] = x[i] + kernelSize/2. * xjxi[0];
+            //xij[1] = y[i] + kernelSize/2. * xjxi[1];
+
+
+#if FIRST_ORDER_QUAD_POINT
+            xij[0] = (x[i] + ghostParticles.x[j])/2.;
+            xij[1] = (y[i] + ghostParticles.y[j])/2.;
+
+            xijxj[0] = .5*(x[i] - ghostParticles.x[j]);
+            xijxj[1] = .5*(y[i] - ghostParticles.y[j]);
+
+            xijxi[0] = .5*(ghostParticles.x[j] - x[i]);
+            xijxi[1] = .5*(ghostParticles.y[j] - y[i]);
+
+#else
+            xij[0] = x[i] + kernelSize/4. * xjxi[0];
+            xij[1] = y[i] + kernelSize/4. * xjxi[1];
+            xijxi[0] = xij[0] - x[i];
+            xijxi[1] = xij[1] - y[i];
+
+            xijxj[0] = xij[0] - ghostParticles.x[j];
+            xijxj[1] = xij[1] - ghostParticles.y[j];
+#endif
+
+#if DIM==3
+            xjxi[2] = ghostParticles.z[j] - z[i];
+            //xij[2] = z[i] + kernelSize/2. * xjxi[2];
+            xij[2] = z[i] + kernelSize/4. * xjxi[2];
+            xijxi[2] = xij[2] - z[i];
+            xijxj[2] = xij[2] - ghostParticles.z[j];
+            // TODO: add FIRST_ORDER_QUAD_POINT
+#endif
+
+            int iW = i*MAX_NUM_GHOST_INTERACTIONS+jn;
+#if !MOVE_PARTICLES
+            vFrameGhosts[iW][0] = 0.;
+            vFrameGhosts[iW][1] = 0.;
+#if DIM==3
+            vFrameGhosts[iW][2] = 0.;
+#endif
+#else // !MOVE_PARTICLES
+#if FIRST_ORDER_QUAD_POINT
+            vFrameGhosts[iW][0] = (vx[i] + ghostParticles.vx[j])/2.;
+            vFrameGhosts[iW][1] = (vy[i] + ghostParticles.vy[j])/2.;
+#if DIM==3
+            vFrameGhosts[iW][2] = (vz[i] + ghostParticles.vz[j])/2.;
+#endif
+#else
+            double dotProd = Helper::dotProduct(xijxi, xjxi);
+            double dSqr = Helper::dotProduct(xjxi, xjxi);
+
+            vFrameGhosts[iW][0] = vx[i] + (ghostParticles.vx[j]-vx[i]) * dotProd/dSqr;
+            vFrameGhosts[iW][1] = vy[i] + (ghostParticles.vy[j]-vy[i]) * dotProd/dSqr;
+#if DIM==3
+            vFrameGhosts[iW][2] = vz[i] + (ghostParticles.vz[j]-vz[i]) * dotProd/dSqr;
+#endif
+#endif
+#endif // !MOVE_PARTICLES
+            /*if(i == 394){
+                Logger(DEBUG) << "vFrame[0] = " << vFrameGhosts[iW][0]
+                              << ", vFrame[1] = " << vFrameGhosts[iW][1]
+                              << ", rhoGrad[i][0] = " << rhoGrad[i][0]
+                              << ", rhoGrad[i][1] = " << rhoGrad[i][1]
+                              << ", rho[i] = " << rho[i]
+                              << ", xijxi = [" << xijxi[0] << ", " << xijxi[1]
+                              << "], xij = [" << xij[0] << ", " << xij[1]
+                              << "], xj = [" << ghostParticles.x[j] << ", " << ghostParticles.y[j] << "] @" << j;
+                //exit(5);
+            }*/
+            // boost frame to effective face
+            WijRGhosts[iW][0] = rho[i];
+            WijLGhosts[iW][0] = ghostParticles.rho[j];
+            WijRGhosts[iW][1] = P[i];
+            WijLGhosts[iW][1] = ghostParticles.P[j];
+            WijRGhosts[iW][2] = vx[i] - vFrameGhosts[iW][0];
+            WijLGhosts[iW][2] = ghostParticles.vx[j] - vFrameGhosts[iW][0];
+            WijRGhosts[iW][3] = vy[i] - vFrameGhosts[iW][1];
+            WijLGhosts[iW][3] = ghostParticles.vy[j] - vFrameGhosts[iW][1];
+#if DIM == 3
+            WijRGhosts[iW][4] = vz[i] - vFrameGhosts[iW][2];
+            WijLGhosts[iW][4] = ghostParticles.vz[j] - vFrameGhosts[iW][2];
+#endif
+
+            // reconstruction at effective face
+            WijRGhosts[iW][0] += Helper::dotProduct(rhoGrad[i], xijxi);
+            WijLGhosts[iW][0] += Helper::dotProduct(ghostParticles.rhoGrad[j], xijxj);
+            WijRGhosts[iW][1] += Helper::dotProduct(PGrad[i], xijxi);
+            WijLGhosts[iW][1] += Helper::dotProduct(ghostParticles.PGrad[j], xijxj);
+            WijRGhosts[iW][2] += Helper::dotProduct(vxGrad[i], xijxi);
+            WijLGhosts[iW][2] += Helper::dotProduct(ghostParticles.vxGrad[j], xijxj);
+            WijRGhosts[iW][3] += Helper::dotProduct(vyGrad[i], xijxi);
+            WijLGhosts[iW][3] += Helper::dotProduct(ghostParticles.vyGrad[j], xijxj);
+#if DIM==3
+            WijRGhosts[iW][4] += Helper::dotProduct(vzGrad[i], xijxi);
+            WijLGhosts[iW][4] += Helper::dotProduct(ghostParticles.vzGrad[j], xijxj);
+#endif
+
+            //if (i == 23 && iW == 28){
+            //    Logger(DEBUG) << "        j = " << j
+            //                  << ", rhoL = " << WijLGhosts[iW][0] << ", rhoR = " << WijRGhosts[iW][0]
+            //                  << ", uL = " << WijLGhosts[iW][2] << ", uR = " << WijRGhosts[iW][2]
+            //                  << ", PL = " << WijLGhosts[iW][1] << ", PR = " << WijRGhosts[iW][1];
+            //}
+
+            // predict half a timestep
+            double viDiv = vxGrad[i][0] + vyGrad[i][1];
+            double vjDiv = ghostParticles.vxGrad[j][0] + ghostParticles.vyGrad[j][1];
+#if DIM==3
+            viDiv += vzGrad[i][2];
+            vjDiv += ghostParticles.vzGrad[j][2];
+#endif
+            WijRGhosts[iW][0] -= dt/2. * (rho[i] * viDiv + (vx[i]-vFrameGhosts[iW][0])*rhoGrad[i][0] + (vy[i]-vFrameGhosts[iW][1])*rhoGrad[i][1]);
+            WijLGhosts[iW][0] -= dt/2. * (ghostParticles.rho[j] * vjDiv + (ghostParticles.vx[j]-vFrameGhosts[iW][0])*ghostParticles.rhoGrad[j][0] + (ghostParticles.vy[j]-vFrameGhosts[iW][1])*ghostParticles.rhoGrad[j][1]);
+            // WijRGhosts[iW][1] -= dt/2. * (gamma*P[i] * viDiv + (vx[i]-vFrameGhosts[iW][0])*PGrad[i][0] + (vy[i]-vFrameGhosts[iW][1])*PGrad[i][1]);
+            // WijLGhosts[iW][1] -= dt/2. * (gamma*ghostParticles.P[j] * vjDiv + (ghostParticles.vx[j]-vFrameGhosts[iW][0])*ghostParticles.PGrad[j][0] + (ghostParticles.vy[j]-vFrameGhosts[iW][1])*ghostParticles.PGrad[j][1]);
+            WijRGhosts[iW][2] -= dt/2. * (PGrad[i][0]/rho[i] + (vx[i] - vFrameGhosts[iW][0])*vxGrad[i][0] + (vy[i] - vFrameGhosts[iW][1])*vxGrad[i][1]);
+            WijLGhosts[iW][2] -= dt/2. * (ghostParticles.PGrad[j][0]/ghostParticles.rho[j] + (ghostParticles.vx[j]-vFrameGhosts[iW][0])*ghostParticles.vxGrad[j][0] + (ghostParticles.vy[j]-vFrameGhosts[iW][1])*ghostParticles.vxGrad[j][1]);
+            WijRGhosts[iW][3] -= dt/2. * (PGrad[i][1]/rho[i] + (vx[i] - vFrameGhosts[iW][0])*vyGrad[i][0] + (vy[i] - vFrameGhosts[iW][1])*vyGrad[i][1]);
+            WijLGhosts[iW][3] -= dt/2. * (ghostParticles.PGrad[j][1]/ghostParticles.rho[j] + (ghostParticles.vx[j]-vFrameGhosts[iW][0])*ghostParticles.vyGrad[j][0] + (ghostParticles.vy[j]-vFrameGhosts[iW][1])*ghostParticles.vyGrad[j][1]);
+#if DIM==3
+            // TODO: update below for 3D
+            WijRGhosts[iW][4] -= dt/2. * PGrad[i][2]/rho[i];
+            WijLGhosts[iW][4] -= dt/2. * ghostParticles.PGrad[j][2]/ghostParticles.rho[j];
+#endif
+
+           //if (i == 46) // && iW == 28){
+           //     Logger(DEBUG) << "        j = " << j
+           //                   << ", rhoL = " << WijLGhosts[iW][0] << ", rhoR = " << WijRGhosts[iW][0]
+           //                   << ", uL = " << WijLGhosts[iW][2] << ", uR = " << WijRGhosts[iW][2]
+           //                   << ", PL = " << WijLGhosts[iW][1] << ", PR = " << WijRGhosts[iW][1];
+            //}
+
+        }
+    }
+}
+#else
 void Particles::compRiemannStatesLR(const double &dt, const double &kernelSize, const double &gamma,
                                   const Particles &ghostParticles){
 
@@ -2823,7 +3403,7 @@ void Particles::compRiemannStatesLR(const double &dt, const double &kernelSize, 
         }
     }
 }
-
+#endif // MURNAGHAN EOS
 /// debugging function to printout the number of (ghost-)interactions
 void Particles::printNoi(){
     for (int i=0; i<N; ++i) {

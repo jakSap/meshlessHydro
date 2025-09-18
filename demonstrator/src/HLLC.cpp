@@ -451,14 +451,14 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
     /* STEP 2: wave speed estimates
        all these speeds are along the interface normal, since uL and uR are */
     // For Einfeldt wave speed estimates, as in Toro:
-    const double eta_2 = 0.5 * sqrt(WL[0] * WR[0]) / pow(sqrt(WL[0]) + sqrt(WR[0]), 2)
-    const double dbarSqrd = (sqrt(WL[0]) * pow(aL, 2) + sqrt(WR[0]) * pow(aR, 2)) / (sqrt(WL[0]) + sqrt(WR[0])) + eta_2 * pow(uR - uL, 2)
-    const double ubar = uL + uR
-    const double SL = ubar - sqrt(dbarSqrd)
-    const double SR = ubar + sqrt(dbarSqrd)
+    const double eta_2 = 0.5 * sqrt(WL[0] * WR[0]) / pow(sqrt(WL[0]) + sqrt(WR[0]), 2);
+    const double dbarSqrd = (sqrt(WL[0]) * pow(aL, 2) + sqrt(WR[0]) * pow(aR, 2)) / (sqrt(WL[0]) + sqrt(WR[0])) + eta_2 * pow(uR - uL, 2);
+    const double ubar = uL + uR;
+    const double SL = ubar - sqrt(dbarSqrd);
+    const double SR = ubar + sqrt(dbarSqrd);
 
     const double SLmuL = SL - uL;
-    const double SRmuR = SR - uR
+    const double SRmuR = SR - uR;
 
     const double Sstar =
         (WR[1] - WL[1] + WL[0] * uL * SLmuL - WR[0] * uR * SRmuR) /
@@ -587,8 +587,8 @@ void HLLC::solveHLLC1(double *WR, double *WL, double *n,
         // Logger(DEBUG) << " c ";
         const double rhoRuR = WR[0] * uR;
         const double v2 = WR[2] * WR[2] + WR[3] * WR[3];
-        const double eR =
-            WR[1] * rhoRinv * hydro_one_over_gamma_minus_one + 0.5d * v2;
+        // const double eR = // Set energy flux for Murnaghan EOS
+            // WR[1] * rhoRinv * hydro_one_over_gamma_minus_one + 0.5d * v2;
         const double SR = SRmuR + uR;
 
 #if MESHLESS_FINITE_MASS

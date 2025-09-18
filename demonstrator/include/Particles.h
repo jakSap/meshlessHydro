@@ -150,11 +150,25 @@ public:
 
     void compEffectiveFace();
 
+#if MURNAGHAN_EOS
+    double compGlobalTimestep(const double &MURN_K0, const double &MURN_n, const double &MURN_rho0,
+                                        const double &kernelSize);
+#else
     double compGlobalTimestep(const double &gamma, const double &kernelSize);
+#endif // MURNAGHAN_EOS
+
+#if MURNAGHAN_EOS
+    void compRiemannStatesLR(const double &dt, const double &kernelSize);
+#else
     void compRiemannStatesLR(const double &dt, const double &kernelSize, const double &gamma);
+#endif // MURNAGHAN EOS
 
+#if MURNAGHAN_EOS
+    void solveRiemannProblems(const double &MURN_K0, const double &MURN_n, const double &MURN_rho0,
+                                const Particles &ghostParticles);
+#else
     void solveRiemannProblems(const double &gamma, const Particles &ghostParticles);
-
+#endif //MURNAGHAN_EOS
     void collectFluxes(Helper &helper, const Particles &ghostParticles);
 
     void updateStateAndPosition(const double &dt, const Domain &domain);
@@ -184,9 +198,13 @@ public:
     void compPsijTilde(Helper &helper, const Particles &ghostParticles, const double &kernelSize);
     void gradient(double *f, double (*grad)[DIM], double *fGhost, const Particles &ghostParticles); //TODO: remove ghostParticles argument
     void compEffectiveFace(const Particles &ghostParticles);
+#if MURNAGHAN_EOS
+    void compRiemannStatesLR(const double &dt, const double &kernelSize,
+                             const Particles &ghostParticles);
+#else
     void compRiemannStatesLR(const double &dt, const double &kernelSize, const double &gamma,
                              const Particles &ghostParticles);
-
+#endif // MURNAGHAN_EOS
     /// functions to copy computed quantities to ghosts needed for further processing
     void updateGhostState(Particles &ghostParticles);
     //void updateGhostPsijTilde(Particles &ghostParticles);

@@ -37,7 +37,7 @@
 #define PSI_2 .25           // TODO: move to config
 
 //// Use Murnaghan EOS, with related Murnaghan parameters below
-#define MURNAGHAN_EOS 1
+#define MURNAGHAN_EOS 0
 
 /// meshless finite mass method instead of meshless finite volume
 #define MESHLESS_FINITE_MASS 0

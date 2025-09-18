@@ -162,15 +162,23 @@ void MeshlessScheme::run(){
         particles->compEffectiveFace(ghostParticles);
 #endif // PERIODIC_BOUNDARIES
         Logger(DEBUG) << "      > Computing fluxes";
+#if MURNAGHAN_EOS
+        particles->compRiemannStatesLR(timeStep, config.kernelSize);
+#else
         particles->compRiemannStatesLR(timeStep, config.kernelSize, config.gamma);
+#endif // Murnaghan EOS
 
 #if PERIODIC_BOUNDARIES
         Logger(DEBUG) << "      > Computing ghost fluxes";
+#if MURNAGHAN_EOS
+        particles->compRiemannStatesLR(timeStep, config.kernelSize,
+                                     ghostParticles);
+#else
         particles->compRiemannStatesLR(timeStep, config.kernelSize, config.gamma,
                                      ghostParticles);
         //Logger(DEBUG) << "Aborting for debugging.";
         //exit(6);
-
+#endif //MURNAGHAN EOS
 #endif// PERIODIC_BOUNDARIES
 
 #if ADAPTIVE_TIMESTEP
@@ -217,11 +225,20 @@ void MeshlessScheme::run(){
 
         Logger(INFO) << "    > Solving Riemann problems";
 #if PERIODIC_BOUNDARIES
+#if MURNAGHAN_EOS
+        particles->solveRiemannProblems(config.MURN_K0, config.MURN_n, config.MURN_rho0, ghostParticles);
+#else
         particles->solveRiemannProblems(config.gamma, ghostParticles);
+#endif // MURNAGHAN_EOS
+#else
+#if MURNAGHAN_EOS
+        Particles ghostParticles { 0, true }; // DUMMY
+        particles->solveRiemannProblems(config.MURN_K0, config.MURN_n, config.MURN_rho0, ghostParticles);
 #else
         Particles ghostParticles { 0, true }; // DUMMY
         particles->solveRiemannProblems(config.gamma, ghostParticles);
-#endif
+#endif // MURNAGHAN_EOS
+#endif // PERIODIC_BOUNDARIES
 
 #if DEBUG_LVL
         Logger(DEBUG) << "    > Checking flux symmetry";

@@ -116,7 +116,7 @@ void Riemann::HLLCFluxMurn(double *Fij, const double &MURN_K0, const double &MUR
     Logger(WARN) << "HLL solver not implemented for Murnaghan EOS, aborting...";
     error(6);
 #else
-    HLLC::solveHLLC(WR, WL, hatAij, Fij, vFrame, K0, murn_n, rho0);
+    HLLC::solveHLLC1(WR, WL, hatAij, Fij, vFrame, MURN_K0, MURN_n, MURN_rho0);
 #endif  // USE_HLL
 
     // Logger(DEBUG) << "i = " << i << " mF = " << Fij[0];
@@ -170,7 +170,7 @@ void Riemann::HLLCFluxMurn(double *Fij, const double &MURN_K0, const double &MUR
 
 #endif
 }
-#else
+#else // MURNAGHAN_EOS
 // Add HLLC function for approximate Riemann Solver, here for a liquid EOS
 void Riemann::HLLCFlux(double *Fij, const double &gamma){
 
